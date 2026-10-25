@@ -1,0 +1,60 @@
+// Deterministic allied and enemy companion AI; independent of Phaser and artwork.
+export const ORDERS=Object.freeze(['guard','patrol','hunt']);
+export class CompanionDirector {
+ constructor({maxPerTeam=2,attackRange=90,attackCooldown=850}={}){
+  this.maxPerTeam=maxPerTeam;this.attackRange=attackRange;this.attackCooldown=attackCooldown;
+  this.units=[];this.nextId=1;this.orders={blue:'guard',red:'hunt'};
+ }
+ add(team,x,{hp=55,damage=8,speed=130}={}){
+  if(!['blue','red'].includes(team)||!Number.isFinite(x))throw new Error('Invalid companion');
+  if(this.units.filter(u=>u.team===team&&u.hp>0).length>=this.maxPerTeam)return null;
+  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,lastAttack:-Infinity};
+  this.units.push(unit);return {...unit};
+ }
+ command(team,order){
+  if(!Object.hasOwn(this.orders,team)||!ORDERS.includes(order))throw new Error('Invalid order');
+  this.orders[team]=order;
+ }
+ wound(id,amount){
+  if(!Number.isFinite(amount)||amount<0)throw new RangeError('Invalid damage');
+  const unit=this.units.find(u=>u.id===id);
+  if(!unit||unit.hp<=0)return {applied:0,ko:false};
+  const applied=Math.min(amount,unit.hp);unit.hp-=applied;
+  return {applied,ko:unit.hp===0};
+ }
+ update(timeMs,deltaMs,champions){
+  if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
+  const actions=[];
+  const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
+  for(const unit of this.units){
+   if(unit.hp<=0)continue;
+   const champion=champions[unit.team],enemy=champions[unit.team==='blue'?'red':'blue'];
+   const foes=[
+    ...(enemy&&enemy.hp>0?[{id:'champion',team:enemy.team,x:enemy.x,hp:enemy.hp}]:[]),
+    ...snapshot.filter(u=>u.team!==unit.team)
+   ];
+   const closest=foes.sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x)||String(a.id).localeCompare(String(b.id)))[0];
+   const order=this.orders[unit.team];
+   const guardPoint=champion?.x??unit.anchor;
+   const fallback=unit.team==='blue'?110:1170;
+   // Guardians protect their champion; patrollers defend a fixed lane; hunters engage.
+   let goal=unit.anchor;
+   if(order==='guard')goal=closest&&Math.abs(closest.x-guardPoint)<230?closest.x:guardPoint+(unit.team==='blue'?55:-55);
+   if(order==='patrol')goal=unit.anchor+Math.sin(timeMs/1150+unit.id)*115;
+   if(order==='hunt')goal=closest?.x??fallback;
+   // Automatically preserve wounded units, irrespective of player micromanagement.
+   if(unit.hp/unit.maxHp<.25)goal=fallback;
+   const dist=goal-unit.x;
+   const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
+   unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
+   actions.push({type:'move',id:unit.id,x:unit.x});
+   if(!closest||unit.hp/unit.maxHp<.25)continue;
+   if(Math.abs(closest.x-unit.x)<=this.attackRange&&timeMs-unit.lastAttack>=this.attackCooldown){
+    unit.lastAttack=timeMs;
+    actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage});
+   }
+  }
+  return actions;
+ }
+ snapshot(){return JSON.parse(JSON.stringify({units:this.units,orders:this.orders}));}
+}

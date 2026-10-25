@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/import-official-logo.yml'
+      - 'scripts/import-official-branding.js'
 permissions:
   contents: write
 jobs:

@@ -246,7 +246,7 @@ class Arena extends Phaser.Scene {
       if(this.match.phase==='finished')return;
     }
     for(const action of aiActions){
-      if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.setText(healthLabel(unit.hp,unit.maxHp));}}
+      if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual){visual.x=action.x;visual.y=action.y??590;}const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.y=(action.y??590)-54;label.setText(healthLabel(unit.hp,unit.maxHp));}}
       if(action.type==='cover-attack')this.damageCover(action.coverId,action.damage);
       if(action.type==='attack'){
         const acting=this.companions.units.find(u=>u.id===action.id);

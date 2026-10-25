@@ -68,3 +68,6 @@ Run `npm test` and `npm run build` for code verification, then `npm run check:as
 
 ### Projectile reliability correction
 Phaser overlap callback now treats the projectile as the first colliding object and the champion as the second. A separately tested pure guard rejects friendly fire, inactive objects, and missing team metadata. The corrected code is committed, but a browser verification and CI test result have not yet been obtained.
+
+### Explicit release gate (October 2026)
+The normal CI checks code and reports missing art without blocking engineering work. A separate manually triggered **Production release preflight** workflow runs the tests, Vite build and strict `npm run check:release`. That command blocks release unless every mandatory PNG/WebP image exists and `assets/licenses.json` records each matching path with nonempty `creator`, `source`, `license` and `approved: true`. This is deliberately a hard gate; no placeholder assets or invented license approvals are supplied. A passing automated gate does not establish visual quality, a playable browser session, audio readiness, installer reliability or rights validity beyond the recorded assertions. Those require separate human review and gameplay testing.

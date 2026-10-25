@@ -72,6 +72,7 @@ class Arena extends Phaser.Scene {
     // Phaser passes the projectile group member first, the champion sprite second.
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(projectile,target)=>{
       if(!shouldProjectileHit(projectile.getData('team'),target.getData('team'),projectile.active,target.active))return;
+      if(projectile.getData('targetId')!==target.getData('id'))return;
       projectile.destroy();
       this.hit(target,12,'ranged');
     });
@@ -146,11 +147,27 @@ class Arena extends Phaser.Scene {
     const dir=Math.sign((nearest?.x??target.x)-source.x)||1;
     const obstruction=this.cover.obstruction(source.x,nearest?.x??target.x);
     if(obstruction){this.damageCover(obstruction.id,18);return;}
-    if(nearest?.kind==='companion'){this.hitCompanion(nearest,12);return;}
     const bullet=this.bullets.create(source.x+dir*43,source.y-17,'missile').setScale(.6);
-    bullet.setData('team',source.getData('team'));bullet.body.setAllowGravity(false);
+    bullet.setData('team',source.getData('team'));
+    bullet.setData('targetId',nearest?.kind==='companion'?nearest.id:(nearest?.id??target.getData('id')));
+    bullet.body.setAllowGravity(false);
     bullet.setVelocityX(dir*650);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+  }
+  updateCompanionProjectiles(){
+    for(const projectile of this.bullets.getChildren()){
+      if(!projectile.active)continue;
+      const id=projectile.getData('targetId');
+      if(typeof id!=='number')continue;
+      const victim=this.companions.units.find(u=>u.id===id);
+      if(!victim||victim.hp<=0){projectile.destroy();continue;}
+      if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
+      if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
+      if(Math.abs(projectile.x-victim.x)<27&&Math.abs(projectile.y-563)<65){
+        projectile.destroy();this.hitCompanion(victim,12);
+        if(this.match.phase==='finished')return;
+      }
+    }
   }
   damageCover(id,amount){
     const hit=this.cover.damage(id,amount);
@@ -200,6 +217,8 @@ class Arena extends Phaser.Scene {
       if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
       if(this.match.phase==='finished')return;
     }
+    this.updateCompanionProjectiles();
+    if(this.match.phase==='finished')return;
     const pace=this.pacing.update(time,true);
     const aiActions=this.companions.update(time,Math.min(delta*pace,65),{
       blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},

@@ -1,7 +1,7 @@
 import {existsSync,statSync,readFileSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 export const REQUIRED_ASSETS=[
- 'arena/iron-citadel.webp','arena/citadel-ground.webp','arena/destructible-barricade.png',
+ 'arena/iron-citadel.webp','arena/citadel-ground.webp','arena/destructible-barricade.png','arena/iron-citadel-gantry.png',
  'fighters/knight.png','fighters/raider.png','fx/projectile.png','fx/slash.png',
  'branding/fire-dragon-interactive.png','defenses/trap.png','defenses/turret.png','defenses/shield.png'
 ];

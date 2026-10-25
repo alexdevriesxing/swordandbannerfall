@@ -12,6 +12,7 @@ import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
 import { aimVelocity, overlapsCompanion } from './systems/ballistics.js';
+import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
@@ -111,7 +112,7 @@ class Arena extends Phaser.Scene {
       if(!shouldProjectileHit(projectile.getData('team'),target.getData('team'),projectile.active,target.active))return;
       if(projectile.getData('targetId')!==target.getData('id'))return;
       projectile.destroy();
-      this.hit(target,12,'ranged');
+      this.hit(target,projectile.getData('damage')??12,'ranged');
     });
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
@@ -191,10 +192,23 @@ class Arena extends Phaser.Scene {
     const bullet=this.bullets.create(originX,originY,'missile').setScale(.6);
     bullet.setData('team',source.getData('team'));
     bullet.setData('targetId',nearest.id);
+    bullet.setData('damage',12);
     bullet.body.setAllowGravity(false);
     const velocity=aimVelocity({x:originX,y:originY},{x:nearest.x,y:(nearest.y??590)-17});
     bullet.setVelocity(velocity.x,velocity.y);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+  }
+  fireCompanion(attacker,target,damage){
+    const shot=planCompanionShot({attacker,target,damage,cover:this.cover});
+    if(!shot)return false;
+    const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
+    bullet.setData('team',shot.team);
+    bullet.setData('targetId',shot.targetId);
+    bullet.setData('damage',shot.damage);
+    bullet.body.setAllowGravity(false);
+    bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+    return true;
   }
   updateCompanionProjectiles(){
     for(const projectile of this.bullets.getChildren()){
@@ -206,7 +220,9 @@ class Arena extends Phaser.Scene {
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
       if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
       if(overlapsCompanion(projectile,victim)){
-        projectile.destroy();this.hitCompanion(victim,12);
+        projectile.destroy();
+        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,projectile.getData('damage')??12,this.time.now);
+        this.hitCompanion(victim,mitigation.damage);
         if(this.match.phase==='finished')return;
       }
     }
@@ -274,6 +290,10 @@ class Arena extends Phaser.Scene {
         red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y}
       });
       if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover}))continue;
+      if(attacker.role==='ranger'){
+        this.fireCompanion(attacker,{...resolved,id:attack.target},attack.damage);
+        continue;
+      }
       if(attack.target==='hero'||attack.target==='enemy'){
         const target=attack.target==='hero'?p:e;
         if(target.active)this.hit(target,attack.damage,'melee');
@@ -295,6 +315,13 @@ class Arena extends Phaser.Scene {
         if(!acting||acting.hp<=0)continue;
         if(action.ability){const target=action.targetId==='champion'?(action.team==='blue'?'enemy':'hero'):action.targetId;const pending=this.telegraphs.schedule(time,action.id,target,action.damage);if(pending)this.feed.push(time,action.ability.toUpperCase()+' incoming','warning');continue;}
         const attacker=acting;
+        if(attacker.role==='ranger'){
+          const target=action.targetId==='champion'
+            ?{id:action.team==='blue'?'enemy':'hero',team:action.team==='blue'?'red':'blue',x:action.team==='blue'?e.x:p.x,y:action.team==='blue'?e.y:p.y,hp:action.team==='blue'?this.director.fighters.enemy.hp:this.director.fighters.hero.hp}
+            :this.companions.units.find(u=>u.id===action.targetId);
+          if(target)this.fireCompanion(attacker,target,action.damage);
+          continue;
+        }
         if(action.targetId==='champion'){
           const target=action.team==='blue'?e:p;
           if(!target.active)continue;

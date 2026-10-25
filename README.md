@@ -89,3 +89,6 @@ Optional authored-platform AI navigation now has a declared `platforms` update p
 
 ### Platform navigation compatibility fix
 `CompanionDirector.update` now explicitly accepts the optional authored-platform map as its fifth argument. This fixes a JavaScript `ReferenceError` that previously could stop even flat-arena combat. When authored platform data is supplied, AI units initialize their logical elevation from their assigned landing zone before target selection. Regression tests cover updates with no platform map, disconnected upper-floor enemies, and existing connected landing traversal. The live arena still does not render approved multi-level terrain or provide platform data; real platform collision and browser QA remain outstanding.
+
+### Takeoff proximity fix
+A platform jump now requires the AI fighter to be within 36 world units of the authored takeoff node. Hunter AI walks toward the takeoff position before scheduling the jump, preventing apparent teleportation from distant positions. This does not implement platform collision, physical landings, or fully authored multi-level arena artwork. Browser playtesting remains pending.

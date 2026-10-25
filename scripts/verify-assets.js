@@ -1,3 +1,4 @@
+import {pathToFileURL} from 'node:url';
 import {existsSync,statSync,readFileSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 export const REQUIRED_ASSETS=[
@@ -19,7 +20,7 @@ export function verifyAssets(root,entries=REQUIRED_ASSETS){
  }
  return {ok:missing.length===0&&empty.length===0&&invalid.length===0,missing,empty,invalid};
 }
-if(process.argv[1]&&import.meta.url===new URL('file://'+resolve(process.argv[1])).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const root=resolve('public/assets');
  const result=verifyAssets(root);
  if(!result.ok){console.error('Production asset gate failed:',JSON.stringify(result,null,2));process.exitCode=1;}

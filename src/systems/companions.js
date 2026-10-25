@@ -1,14 +1,21 @@
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
+export const ROLES=Object.freeze({
+ vanguard:{hp:80,damage:11,speed:115,range:85},
+ ranger:{hp:45,damage:9,speed:145,range:260},
+ sentinel:{hp:100,damage:7,speed:95,range:95}
+});
 export class CompanionDirector {
  constructor({maxPerTeam=2,attackRange=90,attackCooldown=850}={}){
   this.maxPerTeam=maxPerTeam;this.attackRange=attackRange;this.attackCooldown=attackCooldown;
   this.units=[];this.nextId=1;this.orders={blue:'guard',red:'hunt'};
  }
- add(team,x,{hp=55,damage=8,speed=130}={}){
+ add(team,x,{role='vanguard',hp,damage,speed}={}){
+  if(!Object.hasOwn(ROLES,role))throw new Error('Invalid companion role');
+  const spec=ROLES[role];hp??=spec.hp;damage??=spec.damage;speed??=spec.speed;
   if(!['blue','red'].includes(team)||!Number.isFinite(x))throw new Error('Invalid companion');
   if(this.units.filter(u=>u.team===team&&u.hp>0).length>=this.maxPerTeam)return null;
-  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,lastAttack:-Infinity};
+  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,lastAttack:-Infinity};
   this.units.push(unit);return {...unit};
  }
  command(team,order){
@@ -33,15 +40,24 @@ export class CompanionDirector {
     ...(enemy&&enemy.hp>0?[{id:'champion',team:enemy.team,x:enemy.x,hp:enemy.hp}]:[]),
     ...snapshot.filter(u=>u.team!==unit.team)
    ];
-   const closest=foes.sort((a,b)=>Math.abs(a.x-unit.x)-Math.abs(b.x-unit.x)||String(a.id).localeCompare(String(b.id)))[0];
+   // Prioritize immediate threats to our champion; ranged units favor fragile enemy companions.
+   const score=foe=>{
+    const distance=Math.abs(foe.x-unit.x);
+    const threat=Math.abs(foe.x-(champion?.x??unit.anchor))<180?110:0;
+    const fragility=unit.role==='ranger'&&foe.id!=='champion'?35:0;
+    return distance-threat-fragility;
+   };
+   const closest=foes.sort((a,b)=>score(a)-score(b)||String(a.id).localeCompare(String(b.id)))[0];
    const order=this.orders[unit.team];
    const guardPoint=champion?.x??unit.anchor;
    const fallback=unit.team==='blue'?110:1170;
    // Guardians protect their champion; patrollers defend a fixed lane; hunters engage.
    let goal=unit.anchor;
-   if(order==='guard')goal=closest&&Math.abs(closest.x-guardPoint)<230?closest.x:guardPoint+(unit.team==='blue'?55:-55);
+   const formationOffset=unit.role==='ranger'?-85:unit.role==='sentinel'?20:65;
+   const facing=unit.team==='blue'?1:-1;
+   if(order==='guard')goal=closest&&Math.abs(closest.x-guardPoint)<230?closest.x-facing*(unit.role==='ranger'?140:30):guardPoint+facing*formationOffset;
    if(order==='patrol')goal=unit.anchor+Math.sin(timeMs/1150+unit.id)*115;
-   if(order==='hunt')goal=closest?.x??fallback;
+   if(order==='hunt')goal=closest?closest.x-facing*(unit.role==='ranger'?180:unit.role==='sentinel'?35:20):fallback;
    // Automatically preserve wounded units, irrespective of player micromanagement.
    if(unit.hp/unit.maxHp<.25)goal=fallback;
    const dist=goal-unit.x;
@@ -49,7 +65,7 @@ export class CompanionDirector {
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
    actions.push({type:'move',id:unit.id,x:unit.x});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
-   if(Math.abs(closest.x-unit.x)<=this.attackRange&&timeMs-unit.lastAttack>=this.attackCooldown){
+   if(Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage});
    }

@@ -5,68 +5,140 @@
   "inventoryCount": 12,
   "assets": {
     "arena/iron-citadel.webp": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/arena/iron-citadel.webp",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "6f3ec8966bd610058d6c1dc2643c7ac2611fa66e110960d6b3bd355881b4bac8",
+      "dimensions": [
+        1920,
+        1080
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "arena/citadel-ground.webp": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/arena/citadel-ground.webp",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "1192b87158ae7b5d3d086e63edded56196df56aba4a1ed88e95583cb7d8781da",
+      "dimensions": [
+        1280,
+        120
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "arena/destructible-barricade.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/arena/destructible-barricade.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "4246eca164eccb9f519ec234a697401b26842a4e250b48a58940935118cec448",
+      "dimensions": [
+        160,
+        280
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "arena/iron-citadel-gantry.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/arena/iron-citadel-gantry.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "a47842f06aaf4d540afb4350ef2ecf0a492e6e2730fbf17b0b2d450d38065cc1",
+      "dimensions": [
+        380,
+        135
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "fighters/knight.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/fighters/knight.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "eae276e2b366181620a9f1abc0592ce894bce0474002651f324acae44a144b5d",
+      "dimensions": [
+        260,
+        340
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "fighters/raider.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/fighters/raider.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "7a47a5a0b6a49a0dcf01fc934f4fae42b1921705375b73ce5321eb07a61daa26",
+      "dimensions": [
+        260,
+        340
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "fx/projectile.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/fx/projectile.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "f9373ba6e9ec80ecca9fbfa118147609402c901d18d51788b2bb5d76bd791a51",
+      "dimensions": [
+        100,
+        60
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "fx/slash.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/fx/slash.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "dc0672c280de92d6e615a9e408e80af39ccb271cfcba1e94011c655a65712fbd",
+      "dimensions": [
+        120,
+        90
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "branding/fire-dragon-interactive.png": {
       "creator": "Fire Dragon Interactive (first-party studio branding)",
@@ -84,28 +156,57 @@
       "rationale": "Exact official studio artwork is committed, cryptographically verified against its original studio Git blob, suitable for HUD and studio attribution, and approved as branding—not substituted as battle art."
     },
     "defenses/trap.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/defenses/trap.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "0d572472541f338b6ec7da38fde6de6084943c35649ab71d6a3388536d542aa2",
+      "dimensions": [
+        250,
+        160
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "defenses/turret.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/defenses/turret.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "588208f18b527a453dc8805124d9729e5612a8a5834807e5fd7a414f8e7d287c",
+      "dimensions": [
+        230,
+        215
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     },
     "defenses/shield.png": {
-      "creator": null,
-      "source": null,
-      "license": null,
-      "approved": false,
-      "decision": "rejected-pending-production-art",
-      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "AI-generated original illustration sheet on 2026-10-25; original sheet digests recorded in assets/generated-pack-lock.json; exported crop: Sword_Bannerfall_Original_Art_Pack_v1/defenses/shield.png",
+      "license": "Owner-directed original generative artwork approved for use in Sword & Bannerfall under the user's delegated project authority; no exclusive IP or third-party title warranty",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under direct owner delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User explicitly instructed creation and delegated artwork approval for this named game. This project approval concerns output generated for that request; independent legal originality, exclusivity, and third-party-rights clearance are not guaranteed.",
+      "sha256": "962f624595c8efdcf11582246fe349a50012fa77c0fa4a9719ae6fd8dae8c4fe",
+      "dimensions": [
+        250,
+        205
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
     }
-  }
+  },
+  "generatedPackId": "Sword_Bannerfall_Original_Art_Pack_v1",
+  "generatedCoreApproved": 11
 }

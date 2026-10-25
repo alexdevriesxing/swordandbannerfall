@@ -12,7 +12,7 @@ export class PlatformRoutes {
   while(queue.length){
    const path=queue.shift(),here=path.at(-1);
    if(here===end)return path.map(id=>({...this.nodes.get(id)}));
-   for(const [a,b] of this.links){const next=a===here?b:b===here?a:null;if(next&&!visited.has(next)){visited.add(next);queue.push([...path,next]);}}
+   for(const [a,b] of this.links){const next=a===here?b:b===here?a:null;if(next&&!visited.has(next)&&reachableLanding(this.nodes.get(here),this.nodes.get(next))){visited.add(next);queue.push([...path,next]);}}
   }
   return null;
  }
@@ -20,8 +20,14 @@ export class PlatformRoutes {
   return [...this.nodes.values()].filter(n=>Math.hypot(n.x-x,n.y-y)<=maxDistance).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y)||a.id.localeCompare(b.id))[0]??null;
  }
 }
+export function reachableLanding(from,to){
+ if(!from||!to||from.id===to.id)return false;
+ if(![from.x,from.y,to.x,to.y].every(Number.isFinite))return false;
+ if(to.x<50||to.x>1230||to.y<100||to.y>650)return false;
+ return Math.hypot(to.x-from.x,to.y-from.y)<=300&&Math.abs(to.y-from.y)<=145;
+}
 export function platformJump(unit,from,to,timeMs,{speed=210,minDurationMs=460}={}){
- if(!from||!to||from.id===to.id||timeMs<(unit.nextJumpAt??0))return null;
+ if(!reachableLanding(from,to)||timeMs<(unit.nextJumpAt??0))return null;
  // A jump starts only from the actual authored takeoff landing, never from across the map.
  if(!Number.isFinite(unit.x)||Math.abs(unit.x-from.x)>36)return null;
  const distance=Math.hypot(to.x-from.x,to.y-from.y);

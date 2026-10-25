@@ -95,3 +95,6 @@ A platform jump now requires the AI fighter to be within 36 world units of the a
 
 ### Platform route safety check
 Authored platform connections are now filtered for maximum supported leap distance (300 units), vertical displacement (145 units), and safe landing coordinates. Route discovery no longer returns a path that contains an impossible jump. Additional tests cover disconnected elevations and off-arena destinations. This remains logic-level protection, not verified sprite/platform physics or final-art gameplay.
+
+### Role-aware vertical attack rules
+Companion Rangers now use the wider ranged vertical engagement tolerance instead of the melee-only height threshold. Vanguard and Sentinel attacks remain constrained by melee elevation limits. A regression test covers cross-level ranger attacks against a target beyond normal melee reach vertically. The separate delayed-special attack path and final browser physics require follow-up validation; automated tests were committed but could not be executed in this environment.

@@ -14,11 +14,8 @@ test('Git blob SHA matches standard Git hash for a known input',()=>{
 });
 test('branding import is pinned to a specific first-party source commit',()=>{
  const url=new URL(OFFICIAL_LOGO_SOURCE);
- assert.equal(url.hostname,'raw.githubusercontent.com');
- assert.equal(url.pathname.split('/')[1],'alexdevriesxing');
- assert.equal(url.pathname.split('/')[2],'Firedragoninteractive');
- assert.equal(url.pathname.split('/')[3].length,40);
- assert.ok(url.pathname.endsWith('/assets/fire-dragon-logo.png'));
+ assert.equal(url.hostname,'www.firedragoninteractive.com');
+ assert.equal(url.pathname,'/assets/fire-dragon-logo.png');
  assert.equal(OFFICIAL_LOGO_BLOB_SHA.length,40);
  assert.equal(OFFICIAL_LOGO_PATH,'branding/fire-dragon-interactive.png');
 });

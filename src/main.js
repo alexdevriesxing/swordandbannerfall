@@ -344,8 +344,8 @@ class Arena extends Phaser.Scene {
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;
       const resolved=resolveTarget(attack,this.companions.units,{
-        blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x,y:p.y},
-        red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y}
+        blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:180})?.id??null},
+        red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:180})?.id??null}
       });
       if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover}))continue;
       if(attacker.role==='ranger'){

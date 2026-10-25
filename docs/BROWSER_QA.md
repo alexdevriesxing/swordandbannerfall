@@ -29,3 +29,13 @@ When real match casualties generate a blue-team card choice, the browser smoke n
 ## Original generated artwork import note
 
 The game's 18 required artwork slots include the six illustrated comeback card files. The original generated pack has been created, reviewed for basic export quality and source-locked, but its 17 binary images are still distributed as an artifact from the originating ChatGPT conversation. Follow `docs/ART_PACK_IMPORT.md` to install the exact checked assets before running the real-browser test. The pre-existing official studio logo stays untouched. The browser test must inspect crop transparency, static character poses and card readability at the intended display size before promoting generated art to commercial production.
+
+## Extended keyboard, defense-economy and replay checks (October 2026)
+
+The real Chromium acceptance flow now covers more than passive survival. During setup it presses **G** to buy a blue-team turret from the 100-supply budget, checks the 45-supply debit and confirms that attempting a second turret in the identical location cannot spend an additional 45. The opening screenshot is retained; a separate `01b-player-turret.png` captures the purchased defense on the actual arena.
+
+After starting the fight it presses **E** and observes the real squad order change from Guard to Patrol through the loopback-only read-only snapshot. It holds **L** to verify Guard stance and releases it to confirm a return to Attack stance. The browser still tests player movement, jumping, a natural complete 10v10 battle, real comeback-card input when casualties make one available, casualty accounting and victory replay without injecting HP or simulating a win.
+
+Finally, the replay snapshot must show a new 10v10 roster, restored player and enemy supply, no leftover purchased blue defenses, a reset blue squad command and default Attack stance. This catches incomplete `scene.restart()` cleanup that a win-only smoke would miss.
+
+**Scope:** The standard `npm test` / Vite build CI verifies parsing of this browser script but does not execute Chromium. The manual `Full Chromium gameplay and replay QA` workflow runs these assertions only after all 18 authentic artwork files and their approved rights records pass the hard production-art gate. Green code CI must never be reported as a completed visual playthrough.

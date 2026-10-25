@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
 import { TacticalBattle } from './systems/tactics.js';
+import { CompanionDirector } from './systems/companions.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -39,10 +40,15 @@ class Arena extends Phaser.Scene {
     this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
+    this.companions=new CompanionDirector();this.companionSprites=new Map();
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
+    for(const [team,x,texture] of [['blue',150,'knight'],['blue',185,'knight'],['red',1090,'raider'],['red',1125,'raider']]){
+      const unit=this.companions.add(team,x);
+      if(unit){const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);}
+    }
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(target,projectile)=>{
       if(target.getData('team')===projectile.getData('team'))return;
       projectile.destroy();this.hit(target,12,'ranged');
@@ -141,6 +147,24 @@ class Arena extends Phaser.Scene {
       if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
       if(this.director.phase!=='fight')return;
     }
+    const aiActions=this.companions.update(time,Math.min(delta,50),{
+      blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
+      red:{team:'red',x:e.x,hp:this.director.fighters.enemy.hp}
+    });
+    for(const action of aiActions){
+      if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;}
+      if(action.type==='attack'){
+        const attacker=this.companions.units.find(u=>u.id===action.id);
+        if(action.targetId==='champion'){
+          const target=action.team==='blue'?e:p;
+          this.hit(target,action.damage,'melee');
+          if(this.director.phase!=='fight')return;
+        }else if(attacker){
+          const result=this.companions.wound(action.targetId,action.damage);
+          if(result.ko){this.companionSprites.get(action.targetId)?.destroy();this.companionSprites.delete(action.targetId);}
+        }
+      }
+    }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     p.setVelocityX(x*265);
     if(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-505);
@@ -148,6 +172,7 @@ class Arena extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');
       this.tactics.order('blue',this.director.fighters.hero.command);
+      this.companions.command('blue',this.director.fighters.hero.command);
     }
     if(Phaser.Input.Keyboard.JustDown(this.keys.J)&&time-this.lastStrike>400){
       this.lastStrike=time;this.strike(p,e);

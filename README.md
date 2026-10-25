@@ -62,3 +62,6 @@ The champion combat controls now select living enemy AI companions as valid mele
 
 ### Match lifecycle regression pass
 The repository includes `tests/match-lifecycle.test.js`, covering a complete 10v10 elimination scenario from preparation through final victory, duplicate-KO protection, fighting companions after the enemy champion falls, and target selection after barricade destruction. The arena's selected champion melee target and slash direction were corrected. This is a model-level regression harness, **not a verified Phaser browser playthrough**. Production artwork and end-to-end rendering validation remain blockers to release.
+
+### Production release gates
+Run `npm test` and `npm run build` for code verification, then `npm run check:assets` to check all eleven required PNG/WebP assets exist and have correct file signatures. GitHub Actions reports the asset gate as an informational step until final licensed artwork is staged; a green code build **does not** mean the game is ready to ship. The asset gate verifies file signatures only, not art quality, animation completeness, or licensing. A written source/author/rights register and actual browser playtesting remain mandatory before any Windows installer or paid HTML5 release. Phaser 4.2.1 is an official npm version.

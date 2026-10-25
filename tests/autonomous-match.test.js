@@ -10,6 +10,7 @@ import {AttackTelegraphs} from '../src/systems/telegraphs.js';
 import {validImpact} from '../src/systems/impact.js';
 import {nearestOpponent} from '../src/systems/targeting.js';
 import {planCompanionShot} from '../src/systems/companion-projectiles.js';
+import {sweptProjectileImpact} from '../src/systems/projectile-impact.js';
 import {interceptDamage} from '../src/systems/abilities.js';
 
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
@@ -81,8 +82,8 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
  function fire(attacker,target,damage,time){
   const shot=planCompanionShot({attacker,target,damage,cover});
   if(!shot)return;
-  const distance=Math.hypot(target.x-shot.origin.x,(target.y??590)-17-shot.origin.y);
-  shots.push({arrival:time+Math.ceil(distance/650*1000),attacker:attacker.id,targetId:target.id,aimX:target.x,aimY:target.y,damage});
+  shots.push({createdAt:time,x:shot.origin.x,y:shot.origin.y,
+   velocity:shot.velocity,attacker:attacker.id,targetId:target.id,damage});
   metrics.shots++;
  }
  if(blueHeroFalls)hit('hero',1000,'ranged',0);
@@ -111,11 +112,15 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
    else hit(pending.target,pending.damage,'melee',time);
   }
   for(let i=shots.length-1;i>=0;i--){
-   const shot=shots[i];if(shot.arrival>time)continue;
-   shots.splice(i,1);
+   const shot=shots[i];
    const target=liveTarget(shot.targetId);
-   if(!target||Math.hypot(target.x-shot.aimX,(target.y??590)-(shot.aimY??590))>75)continue;
-   hit(shot.targetId,shot.damage,'ranged',time);
+   if(!target||time-shot.createdAt>1900){shots.splice(i,1);continue;}
+   const previous={x:shot.x,y:shot.y};
+   shot.x+=shot.velocity.x*stepMs/1000;
+   shot.y+=shot.velocity.y*stepMs/1000;
+   const impact=sweptProjectileImpact(previous,{x:shot.x,y:shot.y},target,cover);
+   if(impact==='cover'){shots.splice(i,1);continue;}
+   if(impact==='unit'){shots.splice(i,1);hit(shot.targetId,shot.damage,'ranged',time);}
   }
   if(match.phase!=='fight')break;
   for(const attack of tactics.getTargets('blue',[

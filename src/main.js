@@ -83,6 +83,7 @@ class Arena extends Phaser.Scene {
   }
   hit(sprite,damage,type){
     if(this.match.phase!=='fight')return;
+    if(!sprite.active)return;
     const id=sprite.getData('id');
     const team=sprite.getData('team');
     const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);

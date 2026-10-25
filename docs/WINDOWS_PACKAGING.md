@@ -47,3 +47,9 @@ Once the artwork and rights gates pass, verify the exact NSIS installer on clean
 The Windows EXE remains **DRM-free** and is downloaded *after purchase* from a secure seller-controlled fulfilment route. No purchase, entitlement, payment credential or Creem secret belongs inside the Electron application. The $1.99 checkout and download entitlement flow must be separately wired and verified against live Creem configuration before listing. A limited HTML5 browser demo will use the same art/gameplay repository but must have independently validated content/time limits and cannot imply unlimited paid access.
 
 **Current status:** Windows packaging code is implemented and standard CI verifies its paths. Neither a complete Windows installer nor a real asset-complete browser gameplay certification exists yet. Do not publish a paid listing or call the build production ready.
+
+## Generated-art pack integration update (25 October 2026)
+
+The previously missing artwork has now been produced **as a separate original generated-art ZIP in the owner's ChatGPT conversation**, but the ZIP's 17 image binaries have not yet been committed to GitHub. The required image inventory has increased from 12 to **18**, because the six illustrated comeback cards are now used by the live scene and mandatory for rendering. Project-use reviews and exact SHA-256 locks have been committed; they do not make missing binaries magically available.
+
+First download and import the artifact according to `docs/ART_PACK_IMPORT.md`, commit the 17 textures, then run both the hard-gated Chromium gameplay acceptance and Windows NSIS installer workflow. Do not call the game playable or offer a sale until those workflows and manual visual QA actually pass.

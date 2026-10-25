@@ -83,3 +83,6 @@ Hunters can now initiate deterministic, cooldown-limited airborne traversal of n
 
 ### Authored platform route prototype
 `PlatformRoutes` provides a deterministic graph of manually-authored landing nodes, reachable jumps and route discovery. `CompanionDirector.update` accepts an optional fifth `platforms` parameter; Hunters assigned `platformNode` IDs can autonomously traverse connected elevated landings while preserving their AI orders. This is a pure-logic integration tested separately, **not yet enabled by the current flat arena scene**, which lacks final platform artwork and level data. No placeholder platforms were generated. Physics collision, elevated combat targeting and multi-level visual QA remain pending.
+
+### Elevated combat safety pass
+Optional authored-platform AI navigation now has a declared `platforms` update parameter, removing an undefined-variable runtime failure when the active flat arena updates companions. Companion Y positions track traversal and authored landing elevations. Regular AI melee attacks and delayed impact validation reject targets beyond the allowed vertical separation; dedicated regression tests cover ground, adjacent, and distant elevations. This is still only a rules layer until authored multi-level art and browser physics are integrated and tested.

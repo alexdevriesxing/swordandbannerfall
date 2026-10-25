@@ -5,6 +5,7 @@ import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
+import { interceptDamage } from './systems/abilities.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -87,7 +88,8 @@ class Arena extends Phaser.Scene {
     const id=sprite.getData('id');
     const team=sprite.getData('team');
     const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);
-    const result=this.director.damage(id,protectedHit.remaining,type);
+    const intercepted=interceptDamage(this.companions.units,team,sprite.x,protectedHit.remaining,this.time.now);
+    const result=this.director.damage(id,intercepted.damage,type);
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));
     if(result.ko){
       const team=sprite.getData('team');
@@ -133,42 +135,14 @@ class Arena extends Phaser.Scene {
     this.showState();
     this.player.setVelocity(0,0);this.enemy.setVelocity(0,0);
   }
-  roundEnd(){
-    const outcome=this.director.finishRound();
-    this.feedback.setText(outcome.message);
-    this.showState();
-    if(this.director.phase==='finished'||this.tactics.winner()){
-      this.feedback.setText((this.tactics.winner()??'Match')+' — MATCH COMPLETE');
-      return;
-    }
-    this.time.delayedCall(1100,()=>{
-      if(this.director.phase==='cards'){this.feedback.setText('Defeat bonus: press 1 / 2 / 3');return;}
-      this.nextRound();
-    });
-  }
-  nextRound(){
-    this.director.startRound();
-    this.preparation.reset();
-    for(const [id,sprite] of this.teamSprites){
-      sprite.setActive(true).setVisible(true).setAlpha(1);
-      sprite.setPosition(id==='hero'?220:1030,580).setVelocity(0,0);
-    }
-    this.feedback.setText('PREPARE: F/G/H defenses • ENTER to launch');this.showState();
-  }
   showState(){
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
-    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP +state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
-    if(this.director.phase==='cards'){
-      for(const [key,index] of [['ONE',0],['TWO',1],['THREE',2]]){
-        if(Phaser.Input.Keyboard.JustDown(this.keys[key])){this.director.selectCard(index);this.nextRound();break;}
-      }return;
-    }
     if(this.match.phase==='finished')return;
-    if(this.director.phase!=='fight')return;
     const p=this.player,e=this.enemy;
     if(this.preparation.phase==='setup'){
       if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
@@ -185,7 +159,7 @@ class Arena extends Phaser.Scene {
       this.hit(e,attack.damage,'ranged');
       const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId);
       if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
-      if(this.director.phase!=='fight')return;
+      if(this.match.phase==='finished')return;
     }
     const aiActions=this.companions.update(time,Math.min(delta,50),{
       blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
@@ -201,7 +175,10 @@ class Arena extends Phaser.Scene {
           this.hit(target,action.damage,'melee');
           if(this.match.phase==='finished')return;
         }else if(attacker){
-          const result=this.companions.wound(action.targetId,action.damage);
+          const victim=this.companions.units.find(u=>u.id===action.targetId);
+          if(!victim||victim.hp<=0)continue;
+          const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,action.damage,time);
+          const result=this.companions.wound(action.targetId,mitigation.damage);
           if(result.ko){
             const fallen=this.companions.units.find(u=>u.id===action.targetId);
             this.match.eliminate('ai-'+action.targetId);
@@ -214,7 +191,7 @@ class Arena extends Phaser.Scene {
     }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     if(p.active)p.setVelocityX(x*265);
-    if(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-505);
+    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-505);
     this.director.setStance('hero',this.keys.L.isDown?'guard':'attack');
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');

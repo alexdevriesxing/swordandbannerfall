@@ -25,3 +25,7 @@ This automated smoke does **not** sign off the final art direction, retinue read
 
 ## Comeback-card acceptance extension
 When real match casualties generate a blue-team card choice, the browser smoke now presses **1** using Playwright's real keyboard events. The read-only local QA snapshot must report an increased selected-card count; the test never injects fake casualties or edits match state. The smoke then continues to natural victory and verifies that **Enter-to-replay resets** both selected and unlocked comeback rewards. A match that happens to produce no friendly casualties does not claim that card input was exercised: the JSON test output reports the observed `cardsChosen` total. Dedicated manual testing should provoke losses through actual gameplay to inspect all six original illustrated cards once art is delivered.
+
+## Original generated artwork import note
+
+The game's 18 required artwork slots include the six illustrated comeback card files. The original generated pack has been created, reviewed for basic export quality and source-locked, but its 17 binary images are still distributed as an artifact from the originating ChatGPT conversation. Follow `docs/ART_PACK_IMPORT.md` to install the exact checked assets before running the real-browser test. The pre-existing official studio logo stays untouched. The browser test must inspect crop transparency, static character poses and card readability at the intended display size before promoting generated art to commercial production.

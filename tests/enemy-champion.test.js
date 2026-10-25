@@ -36,3 +36,10 @@ test('traversal cooldown and airborne state prevent repeated jumps',()=>{
  assert.equal(enemyChampionDecision({...base,grounded:false}).jump,false);
  assert.equal(enemyChampionDecision({...base,grounded:true,nextTraversalAt:2500}).jump,false);
 });
+
+test('dead champion location never overrides a distant living survivor',()=>{
+ const result=enemyChampionDecision({x:900,y:590,blueChampion:{x:880,y:590,hp:0},blueUnits:[blue(17,100)]});
+ assert.equal(result.target.id,17);
+ assert.equal(result.target.x,100);
+ assert.ok(result.velocityX<0);
+});

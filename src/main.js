@@ -517,6 +517,7 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      },
      companions:scene.companions.units.filter(u=>u.hp>0).length,
      projectiles:scene.bullets?.countActive()??0,
+     comeback:scene.comeback?.snapshot()??null,
      cover:scene.cover.snapshot().map(c=>({id:c.id,hp:c.hp}))
     };
    }

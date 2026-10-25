@@ -27,3 +27,14 @@ test('elevated enemy cannot receive impossible ground-level melee hits',()=>{
  const actions=ai.update(1000,16,champions,null,platforms);
  assert.equal(actions.filter(a=>a.type==='attack').length,0);
 });
+
+test('ranger can shoot between nearby elevations while melee fighters cannot',()=>{
+ const platforms=new PlatformRoutes([{id:'low',x:200,y:590},{id:'upper',x:205,y:485}],[]);
+ const ai=new CompanionDirector({attackCooldown:850});
+ const ranger=ai.add('blue',200,{role:'ranger',platformNode:'low'});
+ ai.add('red',205,{role:'vanguard',platformNode:'upper'});
+ const champions={blue:{team:'blue',x:200,hp:0},red:{team:'red',x:205,hp:0}};
+ ai.command('blue','hunt');
+ const result=ai.update(1000,16,champions,null,platforms);
+ assert.ok(result.some(a=>a.type==='attack'&&a.id===ranger.id));
+});

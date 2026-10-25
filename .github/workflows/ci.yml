@@ -13,3 +13,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
       - run: npm run build
+      - name: Check production-art readiness (informational until final assets approved)
+        run: npm run check:assets
+        continue-on-error: true

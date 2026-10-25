@@ -104,9 +104,9 @@ export class CompanionDirector {
     if(motion){unit.y=motion.y;if(!unit.platformJump){unit.platformNode=unit.pendingPlatformNode;unit.pendingPlatformNode=null;}actions.push(motion);continue;}
    }
    // Spread a crowded single-lane squad before applying obstacle standoff.
-   goal=formationGoal(unit,goal,snapshot);
-   // Autonomous hunters traverse narrow cover, while wide fortifications require breaching.
-   if(order==='hunt'&&!unit.jump){
+   if(!unit.pendingWalkNode)goal=formationGoal(unit,goal,snapshot);
+   // The ground-level cover hop cannot land safely on a raised gantry.
+   if(order==='hunt'&&!unit.jump&&!(platforms?.nodes.get(unit.platformNode)?.width)){
     const plan=jumpPlan(unit,goal,cover,{timeMs});
     if(plan)unit.jump=plan;
    }

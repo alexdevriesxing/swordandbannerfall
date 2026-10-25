@@ -80,3 +80,6 @@ The companion AI now computes deterministic, role-agnostic positional offsets wh
 
 ### Autonomous AI jump traversal
 Hunters can now initiate deterministic, cooldown-limited airborne traversal of narrow barricades, while wider obstructions still require coordinated breaching. The scene renders their arc using the existing final fighter textures and keeps health labels attached. AI units do not attack while jumping. This is single-lane jump traversal, not a full platform-graph navigation system; multi-storey level traversal, physical collision/landing and final jump animations still require implementation and browser QA.
+
+### Authored platform route prototype
+`PlatformRoutes` provides a deterministic graph of manually-authored landing nodes, reachable jumps and route discovery. `CompanionDirector.update` accepts an optional fifth `platforms` parameter; Hunters assigned `platformNode` IDs can autonomously traverse connected elevated landings while preserving their AI orders. This is a pure-logic integration tested separately, **not yet enabled by the current flat arena scene**, which lacks final platform artwork and level data. No placeholder platforms were generated. Physics collision, elevated combat targeting and multi-level visual QA remain pending.

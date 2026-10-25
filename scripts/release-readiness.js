@@ -1,6 +1,6 @@
 import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
-import {verifyAssets} from './verify-assets.js';
+import {verifyAssets,REQUIRED_ASSETS} from './verify-assets.js';
 export function releaseReadiness({root=process.cwd()}={}){
  const result=verifyAssets(resolve(root,'public/assets'));
  const register=resolve(root,'assets/licenses.json');
@@ -9,9 +9,9 @@ export function releaseReadiness({root=process.cwd()}={}){
  else{
   try{
    const data=JSON.parse(readFileSync(register,'utf8'));
-   for(const filename of ['arena/iron-citadel.webp','arena/citadel-ground.webp','arena/destructible-barricade.png','fighters/knight.png','fighters/raider.png','fx/projectile.png','fx/slash.png','branding/fire-dragon-interactive.png','defenses/trap.png','defenses/turret.png','defenses/shield.png']){
+   for(const filename of REQUIRED_ASSETS){
     const asset=data.assets?.[filename];
-    if(!asset||!asset.creator||!asset.source||!asset.license||asset.approved!==true)issues.push('unapproved or undocumented asset: '+filename);
+    if(!asset||!['creator','source','license'].every(key=>typeof asset[key]==='string'&&asset[key].trim().length>0)||asset.approved!==true)issues.push('unapproved or undocumented asset: '+filename);
    }
   }catch{issues.push('invalid asset rights register');}
  }

@@ -36,7 +36,7 @@ export class CompanionDirector {
   const applied=Math.min(amount,unit.hp);unit.hp-=applied;
   return {applied,ko:unit.hp===0};
  }
- update(timeMs,deltaMs,champions,cover=null,platforms=null){
+ update(timeMs,deltaMs,champions,cover=null,platforms=null,teamEffects=null){
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
   // At the beginning of an authored-platform encounter, snap the logical elevation
@@ -120,7 +120,9 @@ export class CompanionDirector {
    // Grounded units stop at intact barriers.
    if(cover)goal=cover.approach(unit.x,goal);
    const dist=goal-unit.x;
-   const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
+   const teamSpeed=teamEffects?.[unit.team]?.speedMultiplier??1;
+   if(!Number.isFinite(teamSpeed)||teamSpeed<=0||teamSpeed>2)throw new RangeError('Invalid team movement modifier');
+   const step=Math.min(Math.abs(dist),unit.speed*teamSpeed*deltaMs/1000);
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
    // On an elevated landing, stay on the physical gantry until taking a valid jump.
    const ledge=platforms?.nodes.get(unit.platformNode);

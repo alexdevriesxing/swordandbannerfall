@@ -4,6 +4,7 @@ import { formationGoal, breachCandidate } from './formation.js';
 import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
 import { platformJump, advancePlatformJump } from './platform-routes.js';
 import { combatElevation } from './elevation.js';
+import { shotObstruction } from './cover.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -130,7 +131,8 @@ export class CompanionDirector {
    unit.y=platforms&&unit.platformNode?(platforms.nodes.get(unit.platformNode)?.y??GROUND_Y):GROUND_Y;
    actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
-   const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
+   const enemyY=closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)??GROUND_Y;
+   const blockedShot=shotObstruction(cover,{x:unit.x,y:unit.y-17},{x:closest.x,y:enemyY-17});
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});
    if(breach&&order==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;

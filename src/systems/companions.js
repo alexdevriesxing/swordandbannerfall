@@ -1,6 +1,7 @@
 import { specialAttack } from './abilities.js';
 import { SquadCoordinator } from './squad.js';
 import { formationGoal, breachCandidate } from './formation.js';
+import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -74,12 +75,21 @@ export class CompanionDirector {
    if(unit.hp/unit.maxHp<.25)goal=fallback;
    // Spread a crowded single-lane squad before applying obstacle standoff.
    goal=formationGoal(unit,goal,snapshot);
-   // Units cannot phase through cover. Hunters breach obstructing obstacles.
+   // Autonomous hunters traverse narrow cover, while wide fortifications require breaching.
+   if(order==='hunt'&&!unit.jump){
+    const plan=jumpPlan(unit,goal,cover,{timeMs});
+    if(plan)unit.jump=plan;
+   }
+   if(unit.jump){
+    const motion=advanceJump(unit,timeMs);
+    if(motion){actions.push(motion);continue;}
+   }
+   // Grounded units stop at intact barriers.
    if(cover)goal=cover.approach(unit.x,goal);
    const dist=goal-unit.x;
    const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
-   actions.push({type:'move',id:unit.id,x:unit.x});
+   actions.push({type:'move',id:unit.id,x:unit.x,y:GROUND_Y});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
    const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});

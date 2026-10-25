@@ -24,6 +24,10 @@ try{
  assert.deepEqual(setup.match.remaining,{blue:10,red:10});
  assert.equal(setup.companions,18);
  assert.equal(setup.preparation,'setup');
+ // Enemy prep is paid for, visible, and present before the battle launches.
+ assert.deepEqual(setup.defenses.filter(d=>d.team==='red').map(d=>d.kind),['turret','shield']);
+ assert.equal(setup.supply.red,20);
+ assert.equal(setup.supply.blue,100);
  await page.screenshot({path:'artifacts/01-preparation.png'});
 
  await page.keyboard.press('Enter');
@@ -80,13 +84,16 @@ try{
  const replay=await snapshot();
  assert.deepEqual(replay.match.remaining,{blue:10,red:10});
  assert.equal(replay.companions,18);
+ assert.deepEqual(replay.defenses.filter(d=>d.team==='red').map(d=>d.kind),['turret','shield']);
+ assert.equal(replay.supply.red,20);
+ assert.equal(replay.supply.blue,100);
  assert.equal(replay.comeback.claims.blue,0,'Replay must reset all selected cards');
  assert.equal(replay.comeback.unlocked.blue,0,'Replay must reset unlocked drafts');
  await page.screenshot({path:'artifacts/04-replay-setup.png'});
 
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
-  'unassisted victory','comeback card input when unlocked','elimination invariants','replay'],cardsChosen,winner:result.match.winner}));
+  'red preparation defenses','unassisted victory','comeback card input when unlocked','elimination invariants','defense state reset on replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);

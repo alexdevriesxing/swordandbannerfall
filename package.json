@@ -12,7 +12,8 @@
     "check:release": "node scripts/release-readiness.js",
     "test:match": "node --test tests/autonomous-match.test.js tests/match-summary.test.js",
     "assets:import-branding": "node scripts/import-official-branding.js",
-    "build:windows": "npm run check:release && npm test && npm run build && python scripts/build-windows-icon.py && electron-builder --win nsis --x64 --publish never"
+    "build:windows": "npm run check:release && npm test && npm run build && npm run check:offline-bundle && python scripts/build-windows-icon.py && electron-builder --win nsis --x64 --publish never",
+    "check:offline-bundle": "node scripts/verify-offline-bundle.js"
   },
   "dependencies": {
     "phaser": "4.2.1"

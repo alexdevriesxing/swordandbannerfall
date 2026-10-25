@@ -5,7 +5,9 @@ import {inspectImage} from './inspect-image.js';
 export const REQUIRED_ASSETS=[
  'arena/iron-citadel.webp','arena/citadel-ground.webp','arena/destructible-barricade.png','arena/iron-citadel-gantry.png',
  'fighters/knight.png','fighters/raider.png','fx/projectile.png','fx/slash.png',
- 'branding/fire-dragon-interactive.png','defenses/trap.png','defenses/turret.png','defenses/shield.png'
+ 'branding/fire-dragon-interactive.png','defenses/trap.png','defenses/turret.png','defenses/shield.png',
+ 'cards/war-cry.png','cards/shieldwall.png','cards/swift-march.png',
+ 'cards/field-medics.png','cards/war-chest.png','cards/deadeye.png'
 ];
 // Minimum native pixel dimensions at the displayed size: no automatic
 // upscaling of undersized production textures. Higher-resolution masters preferred.
@@ -21,7 +23,13 @@ export const MINIMUM_DIMENSIONS=Object.freeze({
  'branding/fire-dragon-interactive.png':[256,128],
  'defenses/trap.png':[62,44],
  'defenses/turret.png':[70,70],
- 'defenses/shield.png':[62,44]
+ 'defenses/shield.png':[62,44],
+ 'cards/war-cry.png':[512,512],
+ 'cards/shieldwall.png':[512,512],
+ 'cards/swift-march.png':[512,512],
+ 'cards/field-medics.png':[512,512],
+ 'cards/war-chest.png':[512,512],
+ 'cards/deadeye.png':[512,512]
 });
 export function verifyAssets(root,entries=REQUIRED_ASSETS){
  const missing=[],empty=[],invalid=[];

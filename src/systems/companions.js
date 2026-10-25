@@ -2,6 +2,7 @@ import { specialAttack } from './abilities.js';
 import { SquadCoordinator } from './squad.js';
 import { formationGoal, breachCandidate } from './formation.js';
 import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
+import { platformJump, advancePlatformJump } from './platform-routes.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -14,12 +15,12 @@ export class CompanionDirector {
   this.maxPerTeam=maxPerTeam;this.attackRange=attackRange;this.attackCooldown=attackCooldown;
   this.units=[];this.nextId=1;this.orders={blue:'guard',red:'hunt'};this.coordinator=new SquadCoordinator();
  }
- add(team,x,{role='vanguard',hp,damage,speed}={}){
+ add(team,x,{role='vanguard',hp,damage,speed,platformNode=null}={}){
   if(!Object.hasOwn(ROLES,role))throw new Error('Invalid companion role');
   const spec=ROLES[role];hp??=spec.hp;damage??=spec.damage;speed??=spec.speed;
   if(!['blue','red'].includes(team)||!Number.isFinite(x))throw new Error('Invalid companion');
   if(this.units.filter(u=>u.team===team&&u.hp>0).length>=this.maxPerTeam)return null;
-  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,lastAttack:-Infinity};
+  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,platformNode,lastAttack:-Infinity};
   this.units.push(unit);return {...unit};
  }
  command(team,order){
@@ -73,6 +74,20 @@ export class CompanionDirector {
    if(order==='hunt')goal=closest?closest.x-facing*(unit.role==='ranger'?180:unit.role==='sentinel'?35:20):fallback;
    // Automatically preserve wounded units, irrespective of player micromanagement.
    if(unit.hp/unit.maxHp<.25)goal=fallback;
+   // Follow authored connected landings only when a multi-level map supplies them.
+   if(platforms&&order==='hunt'&&unit.platformNode&&closest?.platformNode&&unit.platformNode!==closest.platformNode&&!unit.platformJump){
+    const route=platforms.route(unit.platformNode,closest.platformNode);
+    if(route?.length>1){
+     const from=platforms.nodes.get(unit.platformNode);
+     const next=route[1];
+     const plan=platformJump(unit,from,next,timeMs);
+     if(plan){unit.platformJump=plan;unit.pendingPlatformNode=next.id;}
+    }
+   }
+   if(unit.platformJump){
+    const motion=advancePlatformJump(unit,timeMs);
+    if(motion){if(!unit.platformJump){unit.platformNode=unit.pendingPlatformNode;unit.pendingPlatformNode=null;}actions.push(motion);continue;}
+   }
    // Spread a crowded single-lane squad before applying obstacle standoff.
    goal=formationGoal(unit,goal,snapshot);
    // Autonomous hunters traverse narrow cover, while wide fortifications require breaching.

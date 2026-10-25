@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
+import { TacticalBattle } from './systems/tactics.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -10,7 +11,10 @@ const ASSETS = {
   raider:'/assets/fighters/raider.png',
   missile:'/assets/fx/projectile.png',
   slash:'/assets/fx/slash.png',
-  logo:'/assets/branding/fire-dragon-interactive.png'
+  logo:'/assets/branding/fire-dragon-interactive.png',
+  trap:'/assets/defenses/trap.png',
+  turret:'/assets/defenses/turret.png',
+  shield:'/assets/defenses/shield.png'
 };
 class Boot extends Phaser.Scene {
   constructor(){super('Boot');}
@@ -32,8 +36,9 @@ class Arena extends Phaser.Scene {
     this.add.image(640,360,'background').setDisplaySize(1280,720);
     this.add.image(640,661,'ground').setDisplaySize(1280,120);
     this.physics.world.setBounds(0,0,1280,720);
-    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,ONE,TWO,THREE');
+    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
+    this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
@@ -58,9 +63,17 @@ class Arena extends Phaser.Scene {
   }
   hit(sprite,damage,type){
     if(this.director.phase!=='fight')return;
-    const id=sprite.getData('id');const result=this.director.damage(id,damage,type);
+    const id=sprite.getData('id');
+    const team=sprite.getData('team');
+    const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);
+    const result=this.director.damage(id,protectedHit.remaining,type);
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));
-    if(result.ko){sprite.setVelocity(0,0);sprite.setActive(false).setVisible(false);this.roundEnd();}
+    if(result.ko){
+      const team=sprite.getData('team');
+      const casualty=this.tactics.knockout(team);
+      if(casualty.accepted)this.tactics.grantSupply(team==='blue'?'red':'blue',15);
+      sprite.setVelocity(0,0);sprite.setActive(false).setVisible(false);this.roundEnd();
+    }
   }
   strike(source,target){
     const facing=target.x-source.x;
@@ -77,11 +90,22 @@ class Arena extends Phaser.Scene {
     bullet.setVelocityX(dir*650);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
+  deployDefense(kind){
+    const result=this.tactics.deploy('blue',kind,Math.max(60,Math.min(600,this.player.x)));
+    if(!result.accepted){this.feedback.setText('Cannot deploy: '+result.reason);return;}
+    const d=result.defense;
+    const sprite=this.add.image(d.x,kind==='turret'?591:615,kind).setDepth(3).setDisplaySize(kind==='turret'?70:62,kind==='turret'?70:44);
+    this.defenseSprites.set(d.id,sprite);
+    this.feedback.setText(kind.toUpperCase()+' DEPLOYED');
+  }
   roundEnd(){
     const outcome=this.director.finishRound();
     this.feedback.setText(outcome.message);
     this.showState();
-    if(this.director.phase==='finished')return;
+    if(this.director.phase==='finished'||this.tactics.winner()){
+      this.feedback.setText((this.tactics.winner()??'Match')+' — MATCH COMPLETE');
+      return;
+    }
     this.time.delayedCall(1100,()=>{
       if(this.director.phase==='cards'){this.feedback.setText('Defeat bonus: press 1 / 2 / 3');return;}
       this.nextRound();
@@ -97,7 +121,8 @@ class Arena extends Phaser.Scene {
   }
   showState(){
     const state=this.director.snapshot();
-    this.overlay.setText('SWORD & BANNERFALL    ROUND '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nStance '+state.fighters.hero.stance+'    Retinue '+state.fighters.hero.command+'    Phase '+state.phase);
+    const tactics=this.tactics.snapshot();
+    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nRESERVES '+tactics.remaining.blue+' : '+tactics.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nStance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+state.phase);
   }
   update(time,delta){
     if(this.director.phase==='cards'){
@@ -105,14 +130,24 @@ class Arena extends Phaser.Scene {
         if(Phaser.Input.Keyboard.JustDown(this.keys[key])){this.director.selectCard(index);this.nextRound();break;}
       }return;
     }
-    if(this.director.phase!=='fight')return;
+    if(this.director.phase!=='fight'||this.tactics.winner())return;
     const p=this.player,e=this.enemy;
+    if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
+    if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
+    if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+    for(const attack of this.tactics.getTargets('blue',e.x,time)){
+      this.hit(e,attack.damage,'ranged');
+      const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId);
+      if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
+      if(this.director.phase!=='fight')return;
+    }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     p.setVelocityX(x*265);
     if(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-505);
     this.director.setStance('hero',this.keys.L.isDown?'guard':'attack');
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');
+      this.tactics.order('blue',this.director.fighters.hero.command);
     }
     if(Phaser.Input.Keyboard.JustDown(this.keys.J)&&time-this.lastStrike>400){
       this.lastStrike=time;this.strike(p,e);

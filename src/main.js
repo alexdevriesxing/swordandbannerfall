@@ -355,8 +355,8 @@ class Arena extends Phaser.Scene {
         this.lastEnemyAction=time;
         const barricade=this.cover.obstruction(e.x,decision.target.x);
         if(this.championTarget(e,112))this.strike(e,p);
-        else if(barricade&&Math.abs(barricade.x-e.x)<210)this.fire(e,p);
-        else if(Math.abs(decision.target.x-e.x)<560&&this.director.rng.next()<.28)this.fire(e,p);
+        else if(barricade&&Math.abs(barricade.x-e.x)<210)this.fire(e,decision.target);
+        else if(Math.abs(decision.target.x-e.x)<560&&this.director.rng.next()<.28)this.fire(e,decision.target);
       }
     }
     this.showState();

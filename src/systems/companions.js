@@ -88,8 +88,12 @@ export class CompanionDirector {
     if(route?.length>1){
      const from=platforms.nodes.get(unit.platformNode);
      const next=route[1];
-     const plan=platformJump(unit,from,next,timeMs);
-     if(plan){unit.platformJump=plan;unit.pendingPlatformNode=next.id;}
+     // Approach the authored takeoff point before attempting an elevation change.
+     if(from&&Math.abs(unit.x-from.x)>36)goal=from.x;
+     else{
+      const plan=platformJump(unit,from,next,timeMs);
+      if(plan){unit.platformJump=plan;unit.pendingPlatformNode=next.id;}
+     }
     }
    }
    if(unit.platformJump){

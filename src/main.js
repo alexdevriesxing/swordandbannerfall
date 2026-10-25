@@ -6,6 +6,7 @@ import { BattlefieldCover } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
+import { CombatFeed, BattlePacing } from './systems/feedback.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -47,6 +48,7 @@ class Arena extends Phaser.Scene {
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.preparation=new PreparationPhase({durationMs:12000});
     this.match=new EliminationMatch();
+    this.feed=new CombatFeed();this.pacing=new BattlePacing();
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
@@ -69,6 +71,7 @@ class Arena extends Phaser.Scene {
     });
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
+    this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.feedback.setText('PREPARE DEFENSES: F trap / G turret / H shield — ENTER to battle');
@@ -90,11 +93,12 @@ class Arena extends Phaser.Scene {
     const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);
     const intercepted=interceptDamage(this.companions.units,team,sprite.x,protectedHit.remaining,this.time.now);
     const result=this.director.damage(id,intercepted.damage,type);
+    if(result.applied>0){this.pacing.impact(this.time.now);this.feed.push(this.time.now,(team==='blue'?'ALLY':'ENEMY')+' champion -'+result.applied+' HP','hit');}
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));
     if(result.ko){
       const team=sprite.getData('team');
       const casualty=this.match.eliminate(id);
-      if(casualty.accepted)this.tactics.grantSupply(team==='blue'?'red':'blue',15);
+      if(casualty.accepted){this.tactics.grantSupply(team==='blue'?'red':'blue',15);this.feed.push(this.time.now,(team==='blue'?'BLUE':'RED')+' champion eliminated','ko');}
       sprite.setVelocity(0,0);sprite.setActive(false).setVisible(false);
       if(this.match.winner)this.finishMatch();
     }
@@ -119,7 +123,8 @@ class Arena extends Phaser.Scene {
   damageCover(id,amount){
     const hit=this.cover.damage(id,amount);
     const model=this.cover.segments.find(s=>s.id===id);
-    if(hit.destroyed){this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);this.feedback?.setText('COVER DESTROYED');}
+    if(hit.applied>0)this.pacing.impact(this.time.now);
+    if(hit.destroyed){this.feed.push(this.time.now,'Barricade breached','cover');this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);this.feedback?.setText('COVER DESTROYED');}
     else if(hit.applied&&model){this.coverSprites.get(id)?.setAlpha(Math.max(.35,model.hp/model.maxHp));}
   }
   deployDefense(kind){
@@ -132,6 +137,7 @@ class Arena extends Phaser.Scene {
   }
   finishMatch(){
     this.feedback.setText(this.match.winner.toUpperCase()+' VICTORY — ALL ENEMIES ELIMINATED');
+    this.feed.push(this.time.now,this.match.winner.toUpperCase()+' TEAM WINS','victory');
     this.showState();
     this.player.setVelocity(0,0);this.enemy.setVelocity(0,0);
   }
@@ -139,6 +145,7 @@ class Arena extends Phaser.Scene {
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
+    this.combatLog.setText(this.feed.lines(this.time.now).join('\n'));
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
@@ -149,7 +156,7 @@ class Arena extends Phaser.Scene {
       if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
       if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
       const launched=Phaser.Input.Keyboard.JustDown(this.keys.ENTER)?this.preparation.launch():this.preparation.tick(Math.min(delta,100));
-      if(launched){this.match.begin();this.feedback.setText('BATTLE START');}
+      if(launched){this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START');}
       this.showState();return;
     }
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
@@ -161,7 +168,8 @@ class Arena extends Phaser.Scene {
       if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
       if(this.match.phase==='finished')return;
     }
-    const aiActions=this.companions.update(time,Math.min(delta,50),{
+    const pace=this.pacing.update(time,true);
+    const aiActions=this.companions.update(time,Math.min(delta*pace,65),{
       blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
       red:{team:'red',x:e.x,hp:this.director.fighters.enemy.hp}
     },this.cover);
@@ -179,9 +187,11 @@ class Arena extends Phaser.Scene {
           if(!victim||victim.hp<=0)continue;
           const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,action.damage,time);
           const result=this.companions.wound(action.targetId,mitigation.damage);
+          if(result.applied>0)this.pacing.impact(time);
           if(result.ko){
             const fallen=this.companions.units.find(u=>u.id===action.targetId);
             this.match.eliminate('ai-'+action.targetId);
+            this.feed.push(time,(victim.team==='blue'?'BLUE':'RED')+' '+victim.role+' eliminated','ko');
             if(fallen)this.tactics.grantSupply(action.team,15);
             this.companionSprites.get(action.targetId)?.destroy();this.companionSprites.delete(action.targetId);
             if(this.match.winner){this.finishMatch();return;}
@@ -205,7 +215,7 @@ class Arena extends Phaser.Scene {
       this.lastShot=time;this.fire(p,e);
     }
     const gap=p.x-e.x;
-    if(e.active)e.setVelocityX(Math.abs(gap)>95?Math.sign(gap)*155:0);
+    if(e.active)e.setVelocityX(Math.abs(gap)>95?Math.sign(gap)*155*pace:0);
     if(e.active&&p.active&&time-this.lastEnemyAction>620){
       this.lastEnemyAction=time;
       if(Math.abs(gap)<110)this.strike(e,p);

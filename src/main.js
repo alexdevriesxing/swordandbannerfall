@@ -10,6 +10,7 @@ import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
+import { shouldProjectileHit } from './systems/projectile.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -70,8 +71,7 @@ class Arena extends Phaser.Scene {
     }
     // Phaser passes the projectile group member first, the champion sprite second.
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(projectile,target)=>{
-      if(!projectile.active||!target.active)return;
-      if(projectile.getData('team')===target.getData('team'))return;
+      if(!shouldProjectileHit(projectile.getData('team'),target.getData('team'),projectile.active,target.active))return;
       projectile.destroy();
       this.hit(target,12,'ranged');
     });

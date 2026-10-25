@@ -56,3 +56,6 @@ The arena now shows numeric health indicators above active AI companions, fades 
 
 ### Impact-time reliability pass
 Delayed special attacks now revalidate that the attacker and target are alive, opposing, in range, and unobstructed when damage is due. Stale AI actions from fighters eliminated earlier in the same frame are skipped. Pure-model regression tests cover these cases. Browser smoke tests and full CI verification are still pending; the production artwork contract remains unchanged.
+
+### Champion target selection pass
+The champion combat controls now select living enemy AI companions as valid melee/ranged targets, not only the opposing champion. Companion casualties update the same match ledger, remove their sprites and health labels, and can end the match. A pure targeting module with regression tests excludes allies, dead enemies, out-of-range opponents and targets behind cover. Companion-target ranged attacks currently apply damage immediately (no separate projectile animation) and require final VFX/physics integration. Direct local build execution was unavailable due to networking restrictions; repository commits alone do not prove CI or gameplay success.

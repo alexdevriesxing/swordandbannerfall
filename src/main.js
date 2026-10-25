@@ -8,6 +8,7 @@ import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
+import { validImpact, resolveTarget } from './systems/impact.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -179,6 +180,11 @@ class Arena extends Phaser.Scene {
     for(const attack of this.telegraphs.popReady(time)){
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;
+      const resolved=resolveTarget(attack,this.companions.units,{
+        blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x},
+        red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x}
+      });
+      if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover}))continue;
       if(attack.target==='hero'||attack.target==='enemy'){
         const target=attack.target==='hero'?p:e;
         if(target.active)this.hit(target,attack.damage,'melee');
@@ -196,10 +202,13 @@ class Arena extends Phaser.Scene {
       if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.setText(healthLabel(unit.hp,unit.maxHp));}}
       if(action.type==='cover-attack')this.damageCover(action.coverId,action.damage);
       if(action.type==='attack'){
+        const acting=this.companions.units.find(u=>u.id===action.id);
+        if(!acting||acting.hp<=0)continue;
         if(action.ability){const target=action.targetId==='champion'?(action.team==='blue'?'enemy':'hero'):action.targetId;const pending=this.telegraphs.schedule(time,action.id,target,action.damage);if(pending)this.feed.push(time,action.ability.toUpperCase()+' incoming','warning');continue;}
-        const attacker=this.companions.units.find(u=>u.id===action.id);
+        const attacker=acting;
         if(action.targetId==='champion'){
           const target=action.team==='blue'?e:p;
+          if(!target.active)continue;
           this.hit(target,action.damage,'melee');
           if(this.match.phase==='finished')return;
         }else if(attacker){

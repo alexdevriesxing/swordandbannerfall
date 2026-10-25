@@ -5,10 +5,11 @@ import {pathToFileURL} from 'node:url';
 import {inspectImage} from './inspect-image.js';
 import {MINIMUM_DIMENSIONS} from './verify-assets.js';
 
-// Pinned studio-owned artwork: same source used by the published studio site.
+// Pinned studio-owned artwork: served directly by the published studio site.
+// Content MUST match source Git blob a1314... from repository commit 00d8212.
 // Never substitute a freshly generated/logo-like image for the genuine brand.
 export const OFFICIAL_LOGO_SOURCE=
- 'https://raw.githubusercontent.com/alexdevriesxing/Firedragoninteractive/00d82120238aeef3b65717143ec5da05eb5a524b/assets/fire-dragon-logo.png';
+ 'https://www.firedragoninteractive.com/assets/fire-dragon-logo.png';
 export const OFFICIAL_LOGO_BLOB_SHA='a1314f79d1f81709f2edcec1dbf619b9c8329ab1';
 export const OFFICIAL_LOGO_PATH='branding/fire-dragon-interactive.png';
 

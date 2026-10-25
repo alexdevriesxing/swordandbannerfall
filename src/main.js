@@ -13,6 +13,7 @@ import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
 import { aimVelocity, overlapsCompanion } from './systems/ballistics.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
+import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
@@ -79,7 +80,9 @@ class Arena extends Phaser.Scene {
     this.match.register('blue','hero');this.match.register('red','enemy');
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
     this.physics.add.collider(this.player,this.platformBodies);
-    this.physics.add.collider(this.enemy,this.platformBodies);
+    this.enemyDropUntil=0;
+    this.nextEnemyTraversalAt=0;
+    this.physics.add.collider(this.enemy,this.platformBodies,undefined,()=>this.time.now>=this.enemyDropUntil,this);
     const formations=[
       ...Array.from({length:9},(_,i)=>['blue',i===7?350:70+i*31,'knight',['sentinel','ranger','vanguard'][i%3],i===7?'west-gantry':null]),
       ...Array.from({length:9},(_,i)=>['red',i===7?930:1210-i*31,'raider',['sentinel','ranger','vanguard'][i%3],i===7?'east-gantry':null])
@@ -138,11 +141,11 @@ class Arena extends Phaser.Scene {
       if(this.match.winner)this.finishMatch();
     }
   }
-  championTarget(source,range,attackMode='melee'){
+  championTarget(source,range,attackMode='melee',ignoreCover=false){
     return nearestOpponent(source.x,source.getData('team'),{
       blue:{x:this.player.x,y:this.player.y,hp:this.director.fighters.hero.hp},
       red:{x:this.enemy.x,y:this.enemy.y,hp:this.director.fighters.enemy.hp}
-    },this.companions.units,{range,cover:this.cover,fromY:source.y,attackMode});
+    },this.companions.units,{range,cover:ignoreCover?null:this.cover,fromY:source.y,attackMode});
   }
   hitCompanion(target,damage,time=this.time.now){
     const result=this.companions.wound(target.id,damage);
@@ -169,7 +172,7 @@ class Arena extends Phaser.Scene {
     }
   }
   fire(source,target){
-    const nearest=this.championTarget(source,650,'ranged');
+    const nearest=this.championTarget(source,650,'ranged',true);
     if(!nearest)return;
     const dir=Math.sign(nearest.x-source.x)||1;
     const obstruction=this.cover.obstruction(source.x,nearest.x);
@@ -321,12 +324,28 @@ class Arena extends Phaser.Scene {
     if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.K)&&time-this.lastShot>900){
       this.lastShot=time;this.fire(p,e);
     }
-    const gap=p.x-e.x;
-    if(e.active)e.setVelocityX(Math.abs(gap)>95?Math.sign(gap)*155*pace:0);
-    if(e.active&&p.active&&time-this.lastEnemyAction>620){
-      this.lastEnemyAction=time;
-      if(Math.abs(gap)<110)this.strike(e,p);
-      else if(Math.abs(gap)<560&&this.director.rng.next()<.24)this.fire(e,p);
+    if(e.active){
+      const decision=enemyChampionDecision({
+        x:e.x,y:e.y,grounded:e.body.blocked.down,
+        blueChampion:{x:p.x,y:p.y,hp:this.director.fighters.hero.hp},
+        blueUnits:this.companions.units,platforms:this.platforms,
+        timeMs:time,nextTraversalAt:this.nextEnemyTraversalAt
+      });
+      e.setVelocityX(decision.velocityX*pace);
+      if(decision.jump){
+        e.setVelocityY(-660);
+        this.nextEnemyTraversalAt=time+1600;
+      }else if(decision.drop){
+        this.enemyDropUntil=time+700;
+        e.setVelocityY(175);
+        this.nextEnemyTraversalAt=time+1600;
+      }
+      // Continue fighting surviving squadmates even after the player champion falls.
+      if(decision.target&&time-this.lastEnemyAction>620){
+        this.lastEnemyAction=time;
+        if(this.championTarget(e,112))this.strike(e,p);
+        else if(Math.abs(decision.target.x-e.x)<560&&this.director.rng.next()<.28)this.fire(e,p);
+      }
     }
     this.showState();
   }

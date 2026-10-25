@@ -11,3 +11,13 @@ test('jump cannot originate far from the authored takeoff node',()=>{
  unit.x=85;
  assert.ok(platformJump(unit,g.nodes.get('ground'),g.nodes.get('ramp'),1000));
 });
+
+test('route search rejects an authored connection too far to traverse',()=>{
+ const graph=new PlatformRoutes([{id:'a',x:100,y:590},{id:'b',x:500,y:440}],[['a','b']]);
+ assert.equal(graph.route('a','b'),null);
+});
+test('route search rejects unsafe landing positions',()=>{
+ const graph=new PlatformRoutes([{id:'a',x:100,y:590},{id:'outside',x:1260,y:590}], [['a','outside']]);
+ assert.equal(graph.route('a','outside'),null);
+ assert.equal(platformJump({x:100},graph.nodes.get('a'),graph.nodes.get('outside'),0),null);
+});

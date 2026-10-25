@@ -3,6 +3,7 @@ import { CombatDirector, ARENA } from './systems/combat.js';
 import { TacticalBattle } from './systems/tactics.js';
 import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover } from './systems/cover.js';
+import { PreparationPhase } from './systems/preparation.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -39,9 +40,10 @@ class Arena extends Phaser.Scene {
     this.add.image(640,360,'background').setDisplaySize(1280,720);
     this.add.image(640,661,'ground').setDisplaySize(1280,120);
     this.physics.world.setBounds(0,0,1280,660);
-    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ONE,TWO,THREE');
+    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
+    this.preparation=new PreparationPhase({durationMs:12000});
     this.companions=new CompanionDirector({maxPerTeam:4});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
@@ -61,6 +63,7 @@ class Arena extends Phaser.Scene {
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
+    this.feedback.setText('PREPARE DEFENSES: F trap / G turret / H shield — ENTER to battle');
     this.showState();
   }
   makeFighter(id,texture,x){
@@ -131,16 +134,17 @@ class Arena extends Phaser.Scene {
   }
   nextRound(){
     this.director.startRound();
+    this.preparation.reset();
     for(const [id,sprite] of this.teamSprites){
       sprite.setActive(true).setVisible(true).setAlpha(1);
       sprite.setPosition(id==='hero'?220:1030,580).setVelocity(0,0);
     }
-    this.feedback.setText('');this.showState();
+    this.feedback.setText('PREPARE: F/G/H defenses • ENTER to launch');this.showState();
   }
   showState(){
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
-    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nRESERVES '+tactics.remaining.blue+' : '+tactics.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nStance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+state.phase);
+    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nRESERVES '+tactics.remaining.blue+' : '+tactics.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nStance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     if(this.director.phase==='cards'){
@@ -150,6 +154,14 @@ class Arena extends Phaser.Scene {
     }
     if(this.director.phase!=='fight'||this.tactics.winner())return;
     const p=this.player,e=this.enemy;
+    if(this.preparation.phase==='setup'){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+      const launched=Phaser.Input.Keyboard.JustDown(this.keys.ENTER)?this.preparation.launch():this.preparation.tick(Math.min(delta,100));
+      if(launched)this.feedback.setText('BATTLE START');
+      this.showState();return;
+    }
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');

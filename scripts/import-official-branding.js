@@ -14,7 +14,7 @@ export const OFFICIAL_LOGO_PATH='branding/fire-dragon-interactive.png';
 
 export function gitBlobSha(bytes){
  if(!Buffer.isBuffer(bytes))throw new TypeError('Expected image bytes');
- return createHash('sha1').update('blob '+bytes.length+'\\0'.replace('\\0','\0'))
+ return createHash('sha1').update(Buffer.from('blob '+bytes.length+String.fromCharCode(0)))
   .update(bytes).digest('hex');
 }
 export function validateOfficialLogo(bytes){

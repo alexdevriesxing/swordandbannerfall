@@ -30,3 +30,23 @@ export class BattlefieldCover {
  }
  snapshot(){return this.segments.map(s=>({...s}));}
 }
+
+// Authored cover has a physical top at y=517.5 (580 - 125/2).
+// Bullets above that top pass over it; ground travel still uses obstruction().
+export function shotObstruction(cover,from,to,{topY=517.5}={}){
+ if(!cover)return null;
+ if(![from?.x,from?.y,to?.x,to?.y].every(Number.isFinite))return null;
+ if(typeof cover.intact!=='function')return cover.obstruction?.(from.x,to.x)??null;
+ const left=Math.min(from.x,to.x),right=Math.max(from.x,to.x);
+ const impacts=[];
+ for(const barrier of cover.intact()){
+  const start=Math.max(left,barrier.x-barrier.width/2);
+  const end=Math.min(right,barrier.x+barrier.width/2);
+  if(start>end)continue;
+  const height=barrier.topY??topY;
+  const at=x=>from.x===to.x?Math.max(from.y,to.y):
+    from.y+(to.y-from.y)*(x-from.x)/(to.x-from.x);
+  if(Math.max(at(start),at(end))>=height)impacts.push(barrier);
+ }
+ return impacts.sort((a,b)=>Math.abs(a.x-from.x)-Math.abs(b.x-from.x)||String(a.id).localeCompare(String(b.id)))[0]??null;
+}

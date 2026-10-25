@@ -45,9 +45,29 @@ try{
   'Space jump did not propel the player champion upward');
  await page.screenshot({path:'artifacts/02-live-combat.png'});
 
- // Observe the full autonomous battle, never teleport or kill combatants in QA.
- await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='finished',
-  undefined,{timeout:180000,polling:500});
+ // Observe the unassisted battle. If real casualties unlock a genuine card,
+ // choose it through the actual keyboard and verify that it takes effect.
+ // Never fabricate a loss, change HP, or bypass the production-art gate.
+ let cardsChosen=0;
+ let finished=false;
+ const deadline=Date.now()+180000;
+ while(Date.now()<deadline){
+  const current=await snapshot();
+  if(current?.match.phase==='finished'){finished=true;break;}
+  if(current?.comeback?.pending?.blue){
+   const beforeClaims=current.comeback.claims.blue;
+   await page.keyboard.press('1');
+   await page.waitForTimeout(80);
+   const chosen=await snapshot();
+   if(chosen?.match.phase!=='finished'){
+    assert.ok(chosen.comeback.claims.blue>beforeClaims,
+      'Real comeback card selection did not consume the pending offer');
+    cardsChosen++;
+   }
+  }
+  await page.waitForTimeout(400);
+ }
+ assert.ok(finished,'Autonomous 10v10 encounter stalled or exceeded 180 seconds');
  const result=await snapshot();
  assert.ok(['blue','red'].includes(result.match.winner));
  assert.equal(result.match.remaining[result.match.winner==='blue'?'red':'blue'],0);
@@ -60,11 +80,13 @@ try{
  const replay=await snapshot();
  assert.deepEqual(replay.match.remaining,{blue:10,red:10});
  assert.equal(replay.companions,18);
+ assert.equal(replay.comeback.claims.blue,0,'Replay must reset all selected cards');
+ assert.equal(replay.comeback.unlocked.blue,0,'Replay must reset unlocked drafts');
  await page.screenshot({path:'artifacts/04-replay-setup.png'});
 
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
-  'unassisted victory','elimination invariants','replay'],winner:result.match.winner}));
+  'unassisted victory','comeback card input when unlocked','elimination invariants','replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);

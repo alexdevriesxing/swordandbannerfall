@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 2,
+  "policy": "Approval decisions require delivered original project-specific production art, evidence of permitted commercial reuse, valid image structures, reviewable provenance and exact content hashes. Never auto-approve missing assets or art from unrelated games.",
+  "delegatedAuthority": "Project owner requested the assistant to make asset approval decisions on 2026-10-25. This is a project review decision, not an independent legal certification of chain of title.",
+  "inventoryCount": 12,
+  "assets": {
+    "arena/iron-citadel.webp": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "arena/citadel-ground.webp": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "arena/destructible-barricade.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "arena/iron-citadel-gantry.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "fighters/knight.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "fighters/raider.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "fx/projectile.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "fx/slash.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "branding/fire-dragon-interactive.png": {
+      "creator": "Fire Dragon Interactive (first-party studio branding)",
+      "source": "https://www.firedragoninteractive.com/assets/fire-dragon-logo.png",
+      "license": "First-party brand-use approval for this project under the project owner's explicit delegated approval authority (2026-10-25); not a third-party sublicense",
+      "approved": true,
+      "decision": "approved-first-party-brand",
+      "reviewer": "Project asset reviewer, acting under direct user delegation",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "User expressly delegated selection and approval of assets for Sword & Bannerfall. Approval covers using the identified first-party Fire Dragon Interactive logo within this game; it is not independent proof of original artist assignments or broader trademark rights.",
+      "provenanceRepository": "alexdevriesxing/Firedragoninteractive",
+      "sourceCommit": "00d82120238aeef3b65717143ec5da05eb5a524b",
+      "sourceBlobSha1": "a1314f79d1f81709f2edcec1dbf619b9c8329ab1",
+      "sha256": "40f2d6a814b7198a3274d513e0f31cd160a2be0a7e32fe2c6a8dc21e59688dd4",
+      "rationale": "Exact official studio artwork is committed, cryptographically verified against its original studio Git blob, suitable for HUD and studio attribution, and approved as branding—not substituted as battle art."
+    },
+    "defenses/trap.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "defenses/turret.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    },
+    "defenses/shield.png": {
+      "creator": null,
+      "source": null,
+      "license": null,
+      "approved": false,
+      "decision": "rejected-pending-production-art",
+      "rationale": "No finished, project-specific source asset has been supplied or validated; promotional images and unrelated games are not interchangeable with battle sprites."
+    }
+  }
+}

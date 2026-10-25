@@ -8,6 +8,7 @@ import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
 import { protectedCompanionDamage } from './systems/companion-damage.js';
+import { ComebackDraft } from './systems/comeback-draft.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
@@ -68,6 +69,7 @@ class Arena extends Phaser.Scene {
     this.match=new EliminationMatch();
     this.feed=new CombatFeed();this.pacing=new BattlePacing();this.telegraphs=new AttackTelegraphs();this.healthLabels=new Map();
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
+    this.comeback=new ComebackDraft();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     validateIronCitadel();
     validateGantrySurfaces(IRON_CITADEL_GANTRIES);
@@ -127,6 +129,7 @@ class Arena extends Phaser.Scene {
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
+    this.cardPrompt=this.add.text(640,330,'',{fontFamily:'system-ui',fontSize:'21px',fontStyle:'bold',color:'#ffeac1',backgroundColor:'#101722ee',align:'center',padding:{x:30,y:22},lineSpacing:12}).setOrigin(.5).setScrollFactor(0).setDepth(130).setVisible(false);
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.endShown=false;
@@ -147,7 +150,9 @@ class Arena extends Phaser.Scene {
     if(!sprite.active)return;
     const id=sprite.getData('id');
     const team=sprite.getData('team');
-    const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);
+    const opponent=team==='blue'?'red':'blue';
+    const boosted=this.comeback.damage(opponent,damage,type);
+    const protectedHit=this.tactics.incomingDamage(team,this.comeback.incoming(team,boosted),sprite.x);
     const intercepted=interceptDamage(this.companions.units,team,sprite.x,protectedHit.remaining,this.time.now);
     const result=this.director.damage(id,intercepted.damage,type);
     if(result.applied>0){this.cameras.main.shake(65,.0011);this.tweens.add({targets:sprite,alpha:.5,duration:70,yoyo:true});}
@@ -156,7 +161,11 @@ class Arena extends Phaser.Scene {
     if(result.ko){
       const team=sprite.getData('team');
       const casualty=this.match.eliminate(id);
-      if(casualty.accepted){this.tactics.grantSupply(team==='blue'?'red':'blue',15);this.feed.push(this.time.now,(team==='blue'?'BLUE':'RED')+' champion eliminated','ko');}
+      if(casualty.accepted){
+        this.tactics.grantSupply(team==='blue'?'red':'blue',15);
+        this.feed.push(this.time.now,(team==='blue'?'BLUE':'RED')+' champion eliminated','ko');
+        this.offerComeback(team,casualty.remaining,Boolean(casualty.winner));
+      }
       this.telegraphs.cancelFor(id);
       sprite.setVelocity(0,0);
       sprite.body.enable=false;
@@ -170,14 +179,19 @@ class Arena extends Phaser.Scene {
       red:{x:this.enemy.x,y:this.enemy.y,hp:this.director.fighters.enemy.hp}
     },this.companions.units,{range,cover:ignoreCover?null:this.cover,fromY:source.y,attackMode});
   }
-  hitCompanion(target,damage,time=this.time.now){
+  hitCompanion(target,damage,time=this.time.now,attackType='melee'){
     if(this.match.phase!=='fight'||!target||!(target.hp>0))return;
-    const protectedHit=protectedCompanionDamage(this.tactics,this.companions.units,target,damage,time);
+    const attackerTeam=target.team==='blue'?'red':'blue';
+    const adjusted=this.comeback.incoming(target.team,this.comeback.damage(attackerTeam,damage,attackType));
+    const protectedHit=protectedCompanionDamage(this.tactics,this.companions.units,target,adjusted,time);
     const result=this.companions.wound(target.id,protectedHit.damage);
     if(result.applied>0)this.pacing.impact(time);
     if(result.ko){
       const outcome=this.match.eliminate('ai-'+target.id);
-      if(outcome.accepted)this.tactics.grantSupply(target.team==='blue'?'red':'blue',15);
+      if(outcome.accepted){
+        this.tactics.grantSupply(target.team==='blue'?'red':'blue',15);
+        this.offerComeback(target.team,outcome.remaining,Boolean(outcome.winner));
+      }
       this.telegraphs.cancelFor(target.id);
       this.companionSprites.get(target.id)?.destroy();this.companionSprites.delete(target.id);
       this.healthLabels.get(target.id)?.destroy();this.healthLabels.delete(target.id);
@@ -250,13 +264,42 @@ class Arena extends Phaser.Scene {
         if(victim.kind==='champion'){
           this.hit(id==='hero'?this.player:this.enemy,damage,'ranged');
         }else{
-          this.hitCompanion(this.companions.units.find(u=>u.id===id),damage);
+          this.hitCompanion(this.companions.units.find(u=>u.id===id),damage,this.time.now,'ranged');
         }
         if(this.match.phase==='finished')return;
       }else{
         projectile.setData('previousX',projectile.x).setData('previousY',projectile.y);
       }
     }
+  }
+  offerComeback(team,remaining,ended){
+    const offer=this.comeback.casualty(team,{remaining,ended});
+    if(!offer)return;
+    if(team==='red'){
+      // Enemy captain's deterministic counterpick; no hidden randomness.
+      const pick=remaining<5?0:1;
+      this.chooseComeback('red',pick);
+    }else{
+      this.cardPrompt.setText('TURN THE TIDE — SELECT ONE CARD (1 / 2 / 3)\n'+
+        offer.options.map((card,i)=>(i+1)+'.  '+card.name.toUpperCase()+' — '+card.description).join('\n'));
+      this.cardPrompt.setVisible(true);
+      this.feed.push(this.time.now,'Comeback card ready: choose 1, 2 or 3','card');
+    }
+  }
+  chooseComeback(team,index){
+    const card=this.comeback.choose(team,index);
+    if(!card)return false;
+    if(card.supply)this.tactics.grantSupply(team,card.supply);
+    if(card.heal){
+      for(const unit of this.companions.units){
+        if(unit.team===team&&unit.hp>0)unit.hp=Math.min(unit.maxHp,unit.hp+card.heal);
+      }
+      const champion=this.director.fighters[team==='blue'?'hero':'enemy'];
+      if(champion.hp>0)champion.hp=Math.min(champion.maxHp,champion.hp+card.heal);
+    }
+    if(team==='blue')this.cardPrompt.setVisible(false);
+    this.feed.push(this.time.now,team.toUpperCase()+' CARD: '+card.name.toUpperCase(),'card');
+    return true;
   }
   damageCover(id,amount){
     const hit=this.cover.damage(id,amount);
@@ -280,6 +323,7 @@ class Arena extends Phaser.Scene {
     if(!result)return;
     this.feed.push(this.time.now,result.headline,'victory');
     this.telegraphs.clear();
+    this.cardPrompt?.setVisible(false);
     this.bullets.clear(true,true);
     this.player.setVelocity(0,0);
     this.enemy.setVelocity(0,0);
@@ -298,7 +342,7 @@ class Arena extends Phaser.Scene {
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
     this.combatLog.setText(this.feed.lines(this.time.now).join('\n'));
-    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     if(this.match.phase==='finished'){
@@ -314,6 +358,11 @@ class Arena extends Phaser.Scene {
       if(launched){this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START');}
       this.showState();return;
     }
+    if(this.comeback.offer('blue')){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.ONE))this.chooseComeback('blue',0);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.TWO))this.chooseComeback('blue',1);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.THREE))this.chooseComeback('blue',2);
+    }
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
@@ -328,7 +377,7 @@ class Arena extends Phaser.Scene {
       else{
         const victim=this.companions.units.find(u=>u.id===attack.targetId&&u.hp>0);
         if(victim){
-          this.hitCompanion(victim,attack.damage,time);
+          this.hitCompanion(victim,attack.damage,time,'ranged');
         }
       }
       if(this.match.phase==='finished')return;
@@ -339,7 +388,7 @@ class Arena extends Phaser.Scene {
     const aiActions=this.companions.update(time,Math.min(delta*pace,65),{
       blue:{team:'blue',x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:320})?.id??null,hp:this.director.fighters.hero.hp},
       red:{team:'red',x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:320})?.id??null,hp:this.director.fighters.enemy.hp}
-    },this.cover,this.platforms);
+    },this.cover,this.platforms,{blue:{speedMultiplier:this.comeback.speed('blue')},red:{speedMultiplier:this.comeback.speed('red')}});
     for(const attack of this.telegraphs.popReady(time)){
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;
@@ -392,7 +441,7 @@ class Arena extends Phaser.Scene {
       }
     }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
-    if(p.active)p.setVelocityX(x*265);
+    if(p.active)p.setVelocityX(x*265*this.comeback.speed('blue'));
     if(p.active&&isGrounded(p.body)&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||Phaser.Input.Keyboard.JustDown(this.keys.W)))p.setVelocityY(-660);
     if(p.active&&canDropThroughGantry(p.body,p.x,IRON_CITADEL_GANTRIES)&&Phaser.Input.Keyboard.JustDown(this.keys.S)){
       // S drops through one-way gantries but cannot fall through the solid ground.
@@ -418,7 +467,7 @@ class Arena extends Phaser.Scene {
         blueUnits:this.companions.units,platforms:this.platforms,
         timeMs:time,nextTraversalAt:this.nextEnemyTraversalAt
       });
-      e.setVelocityX(decision.velocityX*pace);
+      e.setVelocityX(decision.velocityX*pace*this.comeback.speed('red'));
       if(decision.jump){
         e.setVelocityY(-660);
         this.nextEnemyTraversalAt=time+1600;

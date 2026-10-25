@@ -11,6 +11,7 @@ import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
+import { aimVelocity, overlapsCompanion } from './systems/ballistics.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 
@@ -178,9 +179,8 @@ class Arena extends Phaser.Scene {
     bullet.setData('team',source.getData('team'));
     bullet.setData('targetId',nearest.id);
     bullet.body.setAllowGravity(false);
-    const dx=nearest.x-originX,dy=(nearest.y??590)-17-originY;
-    const distance=Math.hypot(dx,dy)||1;
-    bullet.setVelocity(dx/distance*650,dy/distance*650);
+    const velocity=aimVelocity({x:originX,y:originY},{x:nearest.x,y:(nearest.y??590)-17});
+    bullet.setVelocity(velocity.x,velocity.y);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
   updateCompanionProjectiles(){
@@ -192,7 +192,7 @@ class Arena extends Phaser.Scene {
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
       if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
-      if(Math.hypot(projectile.x-victim.x,projectile.y-(victim.y-17))<42){
+      if(overlapsCompanion(projectile,victim)){
         projectile.destroy();this.hitCompanion(victim,12);
         if(this.match.phase==='finished')return;
       }

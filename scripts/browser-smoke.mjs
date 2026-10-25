@@ -19,7 +19,7 @@ async function snapshot(){
 }
 try{
  await page.goto(url.toString(),{waitUntil:'networkidle',timeout:30000});
- await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='setup',{timeout:30000});
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='setup',undefined,{timeout:30000});
  const setup=await snapshot();
  assert.deepEqual(setup.match.remaining,{blue:10,red:10});
  assert.equal(setup.companions,18);
@@ -27,7 +27,7 @@ try{
  await page.screenshot({path:'artifacts/01-preparation.png'});
 
  await page.keyboard.press('Enter');
- await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='fight',{timeout:15000});
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='fight',undefined,{timeout:15000});
  await page.waitForTimeout(700); // Let Arcade settle onto physical ground.
  const before=await snapshot();
  await page.keyboard.down('d');
@@ -47,7 +47,7 @@ try{
 
  // Observe the full autonomous battle, never teleport or kill combatants in QA.
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='finished',
-  {timeout:180000,polling:500});
+  undefined,{timeout:180000,polling:500});
  const result=await snapshot();
  assert.ok(['blue','red'].includes(result.match.winner));
  assert.equal(result.match.remaining[result.match.winner==='blue'?'red':'blue'],0);
@@ -56,7 +56,7 @@ try{
  await page.screenshot({path:'artifacts/03-victory.png'});
 
  await page.keyboard.press('Enter');
- await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='setup',{timeout:15000});
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='setup',undefined,{timeout:15000});
  const replay=await snapshot();
  assert.deepEqual(replay.match.remaining,{blue:10,red:10});
  assert.equal(replay.companions,18);

@@ -98,3 +98,6 @@ Authored platform connections are now filtered for maximum supported leap distan
 
 ### Role-aware vertical attack rules
 Companion Rangers now use the wider ranged vertical engagement tolerance instead of the melee-only height threshold. Vanguard and Sentinel attacks remain constrained by melee elevation limits. A regression test covers cross-level ranger attacks against a target beyond normal melee reach vertically. The separate delayed-special attack path and final browser physics require follow-up validation; automated tests were committed but could not be executed in this environment.
+
+### Delayed strike elevation parity
+The delayed impact validator now applies the ranged vertical envelope to Ranger attacks and the melee envelope to Vanguard/Sentinel attacks. It still checks living opponents, range and intervening cover at impact time. Added a test verifying adjacent-level Ranger hits are eligible, melee hits at that separation are rejected, and excessively distant floors remain protected. CI/browser results not verified in this update.

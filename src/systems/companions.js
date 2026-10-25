@@ -1,3 +1,4 @@
+import { SquadCoordinator } from './squad.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -8,7 +9,7 @@ export const ROLES=Object.freeze({
 export class CompanionDirector {
  constructor({maxPerTeam=2,attackRange=90,attackCooldown=850}={}){
   this.maxPerTeam=maxPerTeam;this.attackRange=attackRange;this.attackCooldown=attackCooldown;
-  this.units=[];this.nextId=1;this.orders={blue:'guard',red:'hunt'};
+  this.units=[];this.nextId=1;this.orders={blue:'guard',red:'hunt'};this.coordinator=new SquadCoordinator();
  }
  add(team,x,{role='vanguard',hp,damage,speed}={}){
   if(!Object.hasOwn(ROLES,role))throw new Error('Invalid companion role');
@@ -33,6 +34,13 @@ export class CompanionDirector {
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
+  const teamFocus={};
+  for(const team of ['blue','red']){
+   const enemyTeam=team==='blue'?'red':'blue';
+   const enemyChampion=champions[enemyTeam];
+   const foes=[...(enemyChampion?.hp>0?[{id:'champion',x:enemyChampion.x,hp:enemyChampion.hp}]:[]),...snapshot.filter(u=>u.team===enemyTeam)];
+   teamFocus[team]=this.coordinator.focus(team,snapshot,foes,timeMs,this.orders[team],champions[team]?.x??(team==='blue'?100:1180));
+  }
   for(const unit of this.units){
    if(unit.hp<=0)continue;
    const champion=champions[unit.team],enemy=champions[unit.team==='blue'?'red':'blue'];
@@ -47,7 +55,9 @@ export class CompanionDirector {
     const fragility=unit.role==='ranger'&&foe.id!=='champion'?35:0;
     return distance-threat-fragility;
    };
-   const closest=foes.sort((a,b)=>score(a)-score(b)||String(a.id).localeCompare(String(b.id)))[0];
+   const personal=foes.sort((a,b)=>score(a)-score(b)||String(a.id).localeCompare(String(b.id)))[0];
+   const shared=foes.find(f=>f.id===teamFocus[unit.team]?.id);
+   const closest=this.orders[unit.team]==='guard'&&personal&&Math.abs(personal.x-(champion?.x??unit.anchor))<160?personal:(shared??personal);
    const order=this.orders[unit.team];
    const guardPoint=champion?.x??unit.anchor;
    const fallback=unit.team==='blue'?110:1170;
@@ -68,7 +78,10 @@ export class CompanionDirector {
    actions.push({type:'move',id:unit.id,x:unit.x});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
    const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
-   if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
+   if(blockedShot&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown&&Math.abs(blockedShot.x-unit.x)<=unit.range){
+    unit.lastAttack=timeMs;
+    actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
+   }else if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage});
    }

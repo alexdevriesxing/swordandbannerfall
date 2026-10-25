@@ -9,6 +9,7 @@ import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
 import { protectedCompanionDamage } from './systems/companion-damage.js';
 import { ComebackDraft } from './systems/comeback-draft.js';
+import { EnemyDefenseDirector } from './systems/enemy-defenses.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
@@ -65,6 +66,7 @@ class Arena extends Phaser.Scene {
     this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
+    this.enemyDefenses=new EnemyDefenseDirector();
     this.preparation=new PreparationPhase({durationMs:12000});
     this.match=new EliminationMatch();
     this.feed=new CombatFeed();this.pacing=new BattlePacing();this.telegraphs=new AttackTelegraphs();this.healthLabels=new Map();
@@ -133,6 +135,8 @@ class Arena extends Phaser.Scene {
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.endShown=false;
+    for(const defense of this.enemyDefenses.update(this.tactics,{phase:'setup',timeMs:this.time.now}))
+      this.renderDefense(defense);
     this.feedback.setText('PREPARE: F trap / G turret / H shield — ENTER to battle');
     this.showState();
   }
@@ -316,12 +320,26 @@ class Arena extends Phaser.Scene {
     if(hit.destroyed){this.feed.push(this.time.now,'Barricade breached','cover');this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);this.feedback?.setText('COVER DESTROYED');}
     else if(hit.applied&&model){this.coverSprites.get(id)?.setAlpha(Math.max(.35,model.hp/model.maxHp));}
   }
+  renderDefense(defense){
+    // Every visual uses one of the mandatory finished defense textures.
+    const sprite=this.add.image(defense.x,defense.kind==='turret'?591:615,defense.kind)
+      .setDepth(3).setDisplaySize(defense.kind==='turret'?70:62,defense.kind==='turret'?70:44);
+    // Team tint applies to existing licensed artwork, never invents a texture.
+    if(defense.team==='red')sprite.setTint(0xff9a93);
+    this.defenseSprites.set(defense.id,sprite);
+    return sprite;
+  }
+  syncDefenseSprites(){
+    for(const defense of this.tactics.defenses){
+      if(defense.hp>0)continue;
+      this.defenseSprites.get(defense.id)?.destroy();
+      this.defenseSprites.delete(defense.id);
+    }
+  }
   deployDefense(kind){
     const result=this.tactics.deploy('blue',kind,Math.max(60,Math.min(600,this.player.x)));
     if(!result.accepted){this.feedback.setText('Cannot deploy: '+result.reason);return;}
-    const d=result.defense;
-    const sprite=this.add.image(d.x,kind==='turret'?591:615,kind).setDepth(3).setDisplaySize(kind==='turret'?70:62,kind==='turret'?70:44);
-    this.defenseSprites.set(d.id,sprite);
+    this.renderDefense(result.defense);
     this.feedback.setText(kind.toUpperCase()+' DEPLOYED');
   }
   finishMatch(){
@@ -350,7 +368,7 @@ class Arena extends Phaser.Scene {
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
     this.combatLog.setText(this.feed.lines(this.time.now).join('\n'));
-    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     if(this.match.phase==='finished'){
@@ -374,22 +392,31 @@ class Arena extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+    const friendlyTargets=[
+      ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,hp:this.director.fighters.hero.hp}]:[]),
+      ...this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).map(u=>({id:u.id,x:u.x,hp:u.hp}))
+    ];
+    for(const defense of this.enemyDefenses.update(this.tactics,{
+      phase:'fight',timeMs:time,opponents:friendlyTargets
+    }))this.renderDefense(defense);
     const hostileTargets=[
       ...(this.director.fighters.enemy.hp>0?[{id:'enemy',x:e.x,hp:this.director.fighters.enemy.hp}]:[]),
       ...this.companions.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>({id:u.id,x:u.x,hp:u.hp}))
     ];
-    for(const attack of this.tactics.getTargets('blue',hostileTargets,time)){
-      const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId);
-      if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
-      if(attack.targetId==='enemy')this.hit(e,attack.damage,'ranged');
-      else{
-        const victim=this.companions.units.find(u=>u.id===attack.targetId&&u.hp>0);
-        if(victim){
-          this.hitCompanion(victim,attack.damage,time,'ranged');
+    // Resolve both sides symmetrically. Champions and AI escorts receive the
+    // same shield, Sentinel interception, KO and comeback-card logic.
+    for(const [team,targets] of [['blue',hostileTargets],['red',friendlyTargets]]){
+      for(const attack of this.tactics.getTargets(team,targets,time)){
+        if(attack.targetId==='enemy')this.hit(e,attack.damage,'ranged');
+        else if(attack.targetId==='hero')this.hit(p,attack.damage,'ranged');
+        else{
+          const victim=this.companions.units.find(u=>u.id===attack.targetId&&u.hp>0);
+          if(victim)this.hitCompanion(victim,attack.damage,time,'ranged');
         }
+        if(this.match.phase==='finished')return;
       }
-      if(this.match.phase==='finished')return;
     }
+    this.syncDefenseSprites();
     this.updateProjectiles();
     if(this.match.phase==='finished')return;
     const pace=this.pacing.update(time,true);

@@ -25,7 +25,7 @@ export class CombatDirector {
   const attacker=this.fighters[id==='hero'?'enemy':'hero'];
   const amplified=type==='melee'?raw*(1+attacker.meleeBonus):raw;
   const mitigation=Math.min(.85,victim.armor+(victim.stance==='guard'?.45:0));
-  const actual=Math.max(1,Math.round(amplified*(1-mitigation)));
+  const actual=raw<=0?0:Math.max(1,Math.round(amplified*(1-mitigation)));
   victim.hp=Math.max(0,victim.hp-actual);
   return {applied:actual,ko:victim.hp===0};
  }

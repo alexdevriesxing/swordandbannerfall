@@ -50,3 +50,6 @@ The active arena no longer invokes the obsolete ten-duel round/card transition m
 
 ### Combat readability and anti-stalemate pass
 The arena displays a bounded combat event feed for champion damage, fighter eliminations, destroyed barricades and match victory. A deterministic battle-pacing controller temporarily increases autonomous movement and enemy pursuit speed after an extended interval without meaningful damage; a successful hit resets the timer. This does **not** add procedural art or substitute for combat animations. The new model has unit tests, but the browser build and licensed artwork integration still require verification.
+
+### Readability pass — health labels, hit responses, special windups
+The arena now shows numeric health indicators above active AI companions, fades champion sprites and applies a restrained camera reaction after damage, and announces special ability attacks with a short deferred impact window. Pending special attacks are cancelled when the attacker or intended target is eliminated. These effects use Phaser text and sprite properties rather than procedurally generated character art. The telegraph timing, cancellation, capacity limit and health label formatting are unit-tested. Full battle testing, production textures, animated role effects, sound integration, and accessibility tuning remain outstanding.

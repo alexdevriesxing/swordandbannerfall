@@ -157,6 +157,7 @@ class Arena extends Phaser.Scene {
     },this.companions.units,{range,cover:ignoreCover?null:this.cover,fromY:source.y,attackMode});
   }
   hitCompanion(target,damage,time=this.time.now){
+    if(this.match.phase!=='fight'||!target||!(target.hp>0))return;
     const result=this.companions.wound(target.id,damage);
     if(result.applied>0)this.pacing.impact(time);
     if(result.ko){
@@ -301,9 +302,8 @@ class Arena extends Phaser.Scene {
         const victim=this.companions.units.find(u=>u.id===attack.target);
         if(!victim||victim.hp<=0)continue;
         const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,attack.damage,time);
-        const hit=this.companions.wound(victim.id,mitigation.damage);
-        if(hit.applied>0)this.pacing.impact(time);
-        if(hit.ko){this.match.eliminate('ai-'+victim.id);this.telegraphs.cancelFor(victim.id);this.tactics.grantSupply(attacker.team,15);this.feed.push(time,(victim.team==='blue'?'BLUE':'RED')+' '+victim.role+' eliminated','ko');this.companionSprites.get(victim.id)?.destroy();this.companionSprites.delete(victim.id);this.healthLabels.get(victim.id)?.destroy();this.healthLabels.delete(victim.id);if(this.match.winner){this.finishMatch();return;}}
+        this.hitCompanion(victim,mitigation.damage,time);
+        if(this.match.phase==='finished')return;
       }
       if(this.match.phase==='finished')return;
     }
@@ -331,18 +331,8 @@ class Arena extends Phaser.Scene {
           const victim=this.companions.units.find(u=>u.id===action.targetId);
           if(!victim||victim.hp<=0)continue;
           const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,action.damage,time);
-          const result=this.companions.wound(action.targetId,mitigation.damage);
-          if(result.applied>0)this.pacing.impact(time);
-          if(result.ko){
-            this.telegraphs.cancelFor(action.targetId);
-            this.healthLabels.get(action.targetId)?.destroy();this.healthLabels.delete(action.targetId);
-            const fallen=this.companions.units.find(u=>u.id===action.targetId);
-            this.match.eliminate('ai-'+action.targetId);
-            this.feed.push(time,(victim.team==='blue'?'BLUE':'RED')+' '+victim.role+' eliminated','ko');
-            if(fallen)this.tactics.grantSupply(action.team,15);
-            this.companionSprites.get(action.targetId)?.destroy();this.companionSprites.delete(action.targetId);
-            if(this.match.winner){this.finishMatch();return;}
-          }
+          this.hitCompanion(victim,mitigation.damage,time);
+          if(this.match.phase==='finished')return;
         }
       }
     }

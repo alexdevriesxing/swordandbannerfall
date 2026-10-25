@@ -15,6 +15,10 @@ jobs:
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       - run: npm test
+      - name: Syntax-check browser acceptance and desktop entrypoints
+        run: |
+          node --check scripts/browser-smoke.mjs
+          node --check desktop/main.cjs
       - run: npm run build
       - name: Verify local file-safe bundle for Windows packaging
         run: npm run check:offline-bundle

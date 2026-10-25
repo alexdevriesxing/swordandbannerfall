@@ -10,7 +10,7 @@ import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
-import { shouldProjectileHit } from './systems/projectile.js';
+import { resolveProjectileTarget } from './systems/projectile-targets.js';
 import { aimVelocity } from './systems/ballistics.js';
 import { sweptProjectileImpact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
@@ -117,13 +117,8 @@ class Arena extends Phaser.Scene {
         this.healthLabels.set(unit.id,this.add.text(x,y-54,healthLabel(unit.hp,unit.maxHp),{fontFamily:'system-ui',fontSize:'11px',color:team==='blue'?'#92d7ff':'#ffabab'}).setOrigin(.5).setDepth(9));
       }
     }
-    // Phaser passes the projectile group member first, the champion sprite second.
-    this.physics.add.overlap(this.bullets,[this.player,this.enemy],(projectile,target)=>{
-      if(!shouldProjectileHit(projectile.getData('team'),target.getData('team'),projectile.active,target.active))return;
-      if(projectile.getData('targetId')!==target.getData('id'))return;
-      projectile.destroy();
-      this.hit(target,projectile.getData('damage')??12,'ranged');
-    });
+    // Both champions and AI companions use swept projectile impacts below.
+    // Do not register a second Arcade overlap callback: it could double-award hits.
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
@@ -227,23 +222,31 @@ class Arena extends Phaser.Scene {
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
     return true;
   }
-  updateCompanionProjectiles(){
+  updateProjectiles(){
+    const champions={
+      blue:{team:'blue',x:this.player.x,y:this.player.y,hp:this.director.fighters.hero.hp},
+      red:{team:'red',x:this.enemy.x,y:this.enemy.y,hp:this.director.fighters.enemy.hp}
+    };
     for(const projectile of this.bullets.getChildren()){
       if(!projectile.active)continue;
       const id=projectile.getData('targetId');
-      if(typeof id!=='number')continue;
-      const victim=this.companions.units.find(u=>u.id===id);
-      if(!victim||victim.hp<=0){projectile.destroy();continue;}
-      if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
+      const victim=resolveProjectileTarget(id,projectile.getData('team'),champions,this.companions.units);
+      if(!victim){projectile.destroy();continue;}
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
       const collision=sweptProjectileImpact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
       if(collision==='cover'){projectile.destroy();continue;}
       if(collision==='unit'){
+        // Destroying Phaser game objects may also release their data manager.
+        // Capture the damage before destruction; apply the hit exactly once.
         const damage=projectile.getData('damage')??12;
         projectile.destroy();
-        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,damage,this.time.now);
-        this.hitCompanion(victim,mitigation.damage);
+        if(victim.kind==='champion'){
+          this.hit(id==='hero'?this.player:this.enemy,damage,'ranged');
+        }else{
+          const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,damage,this.time.now);
+          this.hitCompanion(this.companions.units.find(u=>u.id===id),mitigation.damage);
+        }
         if(this.match.phase==='finished')return;
       }else{
         projectile.setData('previousX',projectile.x).setData('previousY',projectile.y);
@@ -326,7 +329,7 @@ class Arena extends Phaser.Scene {
       }
       if(this.match.phase==='finished')return;
     }
-    this.updateCompanionProjectiles();
+    this.updateProjectiles();
     if(this.match.phase==='finished')return;
     const pace=this.pacing.update(time,true);
     const aiActions=this.companions.update(time,Math.min(delta*pace,65),{

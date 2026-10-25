@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
 import { TacticalBattle } from './systems/tactics.js';
 import { CompanionDirector } from './systems/companions.js';
+import { BattlefieldCover } from './systems/cover.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -15,7 +16,8 @@ const ASSETS = {
   logo:'/assets/branding/fire-dragon-interactive.png',
   trap:'/assets/defenses/trap.png',
   turret:'/assets/defenses/turret.png',
-  shield:'/assets/defenses/shield.png'
+  shield:'/assets/defenses/shield.png',
+  barricade:'/assets/arena/destructible-barricade.png'
 };
 class Boot extends Phaser.Scene {
   constructor(){super('Boot');}
@@ -40,12 +42,14 @@ class Arena extends Phaser.Scene {
     this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
-    this.companions=new CompanionDirector();this.companionSprites=new Map();
+    this.companions=new CompanionDirector({maxPerTeam:4});this.companionSprites=new Map();
+    this.cover=new BattlefieldCover();this.coverSprites=new Map();
+    for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
-    for(const [team,x,texture,role] of [['blue',150,'knight','sentinel'],['blue',185,'knight','ranger'],['red',1090,'raider','vanguard'],['red',1125,'raider','ranger']]){
+    for(const [team,x,texture,role] of [['blue',120,'knight','sentinel'],['blue',155,'knight','ranger'],['blue',190,'knight','vanguard'],['blue',225,'knight','ranger'],['red',1055,'raider','sentinel'],['red',1090,'raider','ranger'],['red',1125,'raider','vanguard'],['red',1160,'raider','ranger']]){
       const unit=this.companions.add(team,x,{role});
       if(unit){const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);}
     }
@@ -83,7 +87,7 @@ class Arena extends Phaser.Scene {
   }
   strike(source,target){
     const facing=target.x-source.x;
-    if(Math.abs(facing)<112&&Math.abs(target.y-source.y)<100){
+    if(Math.abs(facing)<112&&Math.abs(target.y-source.y)<100&&!this.cover.obstruction(source.x,target.x)){
       const slash=this.add.image(source.x+Math.sign(facing)*70,source.y-15,'slash').setDepth(6).setScale(.5);
       this.tweens.add({targets:slash,alpha:0,scale:.85,duration:180,onComplete:()=>slash.destroy()});
       this.hit(target,21,'melee');
@@ -91,10 +95,18 @@ class Arena extends Phaser.Scene {
   }
   fire(source,target){
     const dir=Math.sign(target.x-source.x)||1;
+    const obstruction=this.cover.obstruction(source.x,target.x);
+    if(obstruction){this.damageCover(obstruction.id,18);return;}
     const bullet=this.bullets.create(source.x+dir*43,source.y-17,'missile').setScale(.6);
     bullet.setData('team',source.getData('team'));bullet.body.setAllowGravity(false);
     bullet.setVelocityX(dir*650);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+  }
+  damageCover(id,amount){
+    const hit=this.cover.damage(id,amount);
+    const model=this.cover.segments.find(s=>s.id===id);
+    if(hit.destroyed){this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);this.feedback?.setText('COVER DESTROYED');}
+    else if(hit.applied&&model){this.coverSprites.get(id)?.setAlpha(Math.max(.35,model.hp/model.maxHp));}
   }
   deployDefense(kind){
     const result=this.tactics.deploy('blue',kind,Math.max(60,Math.min(600,this.player.x)));
@@ -150,7 +162,7 @@ class Arena extends Phaser.Scene {
     const aiActions=this.companions.update(time,Math.min(delta,50),{
       blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
       red:{team:'red',x:e.x,hp:this.director.fighters.enemy.hp}
-    });
+    },this.cover);
     for(const action of aiActions){
       if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;}
       if(action.type==='attack'){

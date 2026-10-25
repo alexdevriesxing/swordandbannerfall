@@ -286,7 +286,9 @@ class Arena extends Phaser.Scene {
     if(!offer)return;
     if(team==='red'){
       // Enemy captain chooses immediately; no artificial targeting or RNG.
-      this.chooseComeback('red',remaining<5?0:1);
+      // The AI cannot deploy new defenses midbattle, so prioritize perks
+      // it can actually use: movement, ranged accuracy, then direct damage.
+      this.chooseComeback('red',[1,2,1][this.comeback.claims.red]??0);
     }else{
       this.showComebackCards();
       this.feed.push(this.time.now,'Comeback card ready: choose 1, 2 or 3','card');

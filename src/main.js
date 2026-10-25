@@ -137,11 +137,11 @@ class Arena extends Phaser.Scene {
       if(this.match.winner)this.finishMatch();
     }
   }
-  championTarget(source,range){
+  championTarget(source,range,attackMode='melee'){
     return nearestOpponent(source.x,source.getData('team'),{
-      blue:{x:this.player.x,hp:this.director.fighters.hero.hp},
-      red:{x:this.enemy.x,hp:this.director.fighters.enemy.hp}
-    },this.companions.units,{range,cover:this.cover});
+      blue:{x:this.player.x,y:this.player.y,hp:this.director.fighters.hero.hp},
+      red:{x:this.enemy.x,y:this.enemy.y,hp:this.director.fighters.enemy.hp}
+    },this.companions.units,{range,cover:this.cover,fromY:source.y,attackMode});
   }
   hitCompanion(target,damage,time=this.time.now){
     const result=this.companions.wound(target.id,damage);
@@ -168,15 +168,19 @@ class Arena extends Phaser.Scene {
     }
   }
   fire(source,target){
-    const nearest=this.championTarget(source,650);
-    const dir=Math.sign((nearest?.x??target.x)-source.x)||1;
-    const obstruction=this.cover.obstruction(source.x,nearest?.x??target.x);
+    const nearest=this.championTarget(source,650,'ranged');
+    if(!nearest)return;
+    const dir=Math.sign(nearest.x-source.x)||1;
+    const obstruction=this.cover.obstruction(source.x,nearest.x);
     if(obstruction){this.damageCover(obstruction.id,18);return;}
-    const bullet=this.bullets.create(source.x+dir*43,source.y-17,'missile').setScale(.6);
+    const originX=source.x+dir*43,originY=source.y-17;
+    const bullet=this.bullets.create(originX,originY,'missile').setScale(.6);
     bullet.setData('team',source.getData('team'));
-    bullet.setData('targetId',nearest?.kind==='companion'?nearest.id:(nearest?.id??target.getData('id')));
+    bullet.setData('targetId',nearest.id);
     bullet.body.setAllowGravity(false);
-    bullet.setVelocityX(dir*650);
+    const dx=nearest.x-originX,dy=(nearest.y??590)-17-originY;
+    const distance=Math.hypot(dx,dy)||1;
+    bullet.setVelocity(dx/distance*650,dy/distance*650);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
   updateCompanionProjectiles(){
@@ -188,7 +192,7 @@ class Arena extends Phaser.Scene {
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
       if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
-      if(Math.abs(projectile.x-victim.x)<40&&Math.abs(projectile.y-563)<65){
+      if(Math.hypot(projectile.x-victim.x,projectile.y-(victim.y-17))<42){
         projectile.destroy();this.hitCompanion(victim,12);
         if(this.match.phase==='finished')return;
       }
@@ -253,8 +257,8 @@ class Arena extends Phaser.Scene {
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;
       const resolved=resolveTarget(attack,this.companions.units,{
-        blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x},
-        red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x}
+        blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x,y:p.y},
+        red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y}
       });
       if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover}))continue;
       if(attack.target==='hero'||attack.target==='enemy'){

@@ -124,7 +124,7 @@ export class CompanionDirector {
    if(breach&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
-   }else if(!blockedShot&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)}).melee&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
+   }else if(!blockedShot&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)})[unit.role==='ranger'?'ranged':'melee']&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     const special=specialAttack(unit,timeMs);
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage+(special?.bonusDamage??0),ability:special?.ability??null});

@@ -46,12 +46,14 @@ export class CompanionDirector {
    }
   }
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
+  // Guarding a fallen champion stalls an elimination match; surviving fighters hunt instead.
+  const battleOrder=team=>champions[team]?.hp<=0&&this.orders[team]==='guard'?'hunt':this.orders[team];
   const teamFocus={};
   for(const team of ['blue','red']){
    const enemyTeam=team==='blue'?'red':'blue';
    const enemyChampion=champions[enemyTeam];
    const foes=[...(enemyChampion?.hp>0?[{id:'champion',x:enemyChampion.x,hp:enemyChampion.hp}]:[]),...snapshot.filter(u=>u.team===enemyTeam)];
-   teamFocus[team]=this.coordinator.focus(team,snapshot,foes,timeMs,this.orders[team],champions[team]?.x??(team==='blue'?100:1180));
+   teamFocus[team]=this.coordinator.focus(team,snapshot,foes,timeMs,battleOrder(team),champions[team]?.x??(team==='blue'?100:1180));
   }
   for(const unit of this.units){
    if(unit.hp<=0)continue;
@@ -69,8 +71,8 @@ export class CompanionDirector {
    };
    const personal=foes.sort((a,b)=>score(a)-score(b)||String(a.id).localeCompare(String(b.id)))[0];
    const shared=foes.find(f=>f.id===teamFocus[unit.team]?.id);
-   const closest=this.orders[unit.team]==='guard'&&personal&&Math.abs(personal.x-(champion?.x??unit.anchor))<160?personal:(shared??personal);
-   const order=this.orders[unit.team];
+   const closest=battleOrder(unit.team)==='guard'&&personal&&Math.abs(personal.x-(champion?.x??unit.anchor))<160?personal:(shared??personal);
+   const order=battleOrder(unit.team);
    const guardPoint=champion?.x??unit.anchor;
    const fallback=unit.team==='blue'?110:1170;
    // Guardians protect their champion; patrollers defend a fixed lane; hunters engage.
@@ -130,7 +132,7 @@ export class CompanionDirector {
    if(!closest||unit.hp/unit.maxHp<.25)continue;
    const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});
-   if(breach&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
+   if(breach&&order==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
    }else if(!blockedShot&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)})[unit.role==='ranger'?'ranged':'melee']&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){

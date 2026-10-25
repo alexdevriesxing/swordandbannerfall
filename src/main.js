@@ -6,6 +6,7 @@ import { BattlefieldCover, shotObstruction } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
+import { protectedCompanionDamage } from './systems/companion-damage.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
@@ -170,7 +171,8 @@ class Arena extends Phaser.Scene {
   }
   hitCompanion(target,damage,time=this.time.now){
     if(this.match.phase!=='fight'||!target||!(target.hp>0))return;
-    const result=this.companions.wound(target.id,damage);
+    const protectedHit=protectedCompanionDamage(this.tactics,this.companions.units,target,damage,time);
+    const result=this.companions.wound(target.id,protectedHit.damage);
     if(result.applied>0)this.pacing.impact(time);
     if(result.ko){
       const outcome=this.match.eliminate('ai-'+target.id);
@@ -247,8 +249,7 @@ class Arena extends Phaser.Scene {
         if(victim.kind==='champion'){
           this.hit(id==='hero'?this.player:this.enemy,damage,'ranged');
         }else{
-          const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,damage,this.time.now);
-          this.hitCompanion(this.companions.units.find(u=>u.id===id),mitigation.damage);
+          this.hitCompanion(this.companions.units.find(u=>u.id===id),damage);
         }
         if(this.match.phase==='finished')return;
       }else{
@@ -326,9 +327,7 @@ class Arena extends Phaser.Scene {
       else{
         const victim=this.companions.units.find(u=>u.id===attack.targetId&&u.hp>0);
         if(victim){
-          const protectedHit=this.tactics.incomingDamage(victim.team,attack.damage,victim.x);
-          const mitigated=interceptDamage(this.companions.units,victim.team,victim.x,protectedHit.remaining,time);
-          this.hitCompanion(victim,mitigated.damage,time);
+          this.hitCompanion(victim,attack.damage,time);
         }
       }
       if(this.match.phase==='finished')return;
@@ -358,8 +357,7 @@ class Arena extends Phaser.Scene {
       }else{
         const victim=this.companions.units.find(u=>u.id===attack.target);
         if(!victim||victim.hp<=0)continue;
-        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,attack.damage,time);
-        this.hitCompanion(victim,mitigation.damage,time);
+        this.hitCompanion(victim,attack.damage,time);
         if(this.match.phase==='finished')return;
       }
       if(this.match.phase==='finished')return;
@@ -387,8 +385,7 @@ class Arena extends Phaser.Scene {
         }else if(attacker){
           const victim=this.companions.units.find(u=>u.id===action.targetId);
           if(!victim||victim.hp<=0)continue;
-          const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,action.damage,time);
-          this.hitCompanion(victim,mitigation.damage,time);
+          this.hitCompanion(victim,action.damage,time);
           if(this.match.phase==='finished')return;
         }
       }

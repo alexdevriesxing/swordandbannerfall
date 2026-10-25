@@ -7,6 +7,7 @@ import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
+import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -48,7 +49,7 @@ class Arena extends Phaser.Scene {
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.preparation=new PreparationPhase({durationMs:12000});
     this.match=new EliminationMatch();
-    this.feed=new CombatFeed();this.pacing=new BattlePacing();
+    this.feed=new CombatFeed();this.pacing=new BattlePacing();this.telegraphs=new AttackTelegraphs();this.healthLabels=new Map();
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
@@ -63,7 +64,7 @@ class Arena extends Phaser.Scene {
     ];
     for(const [team,x,texture,role] of formations){
       const unit=this.companions.add(team,x,{role});
-      if(unit){this.match.register(team,'ai-'+unit.id);const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);}
+      if(unit){this.match.register(team,'ai-'+unit.id);const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);this.healthLabels.set(unit.id,this.add.text(x,536,healthLabel(unit.hp,unit.maxHp),{fontFamily:'system-ui',fontSize:'11px',color:team==='blue'?'#92d7ff':'#ffabab'}).setOrigin(.5).setDepth(9));}
     }
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(target,projectile)=>{
       if(target.getData('team')===projectile.getData('team'))return;
@@ -93,12 +94,14 @@ class Arena extends Phaser.Scene {
     const protectedHit=this.tactics.incomingDamage(team,damage,sprite.x);
     const intercepted=interceptDamage(this.companions.units,team,sprite.x,protectedHit.remaining,this.time.now);
     const result=this.director.damage(id,intercepted.damage,type);
+    if(result.applied>0){this.cameras.main.shake(65,.0011);this.tweens.add({targets:sprite,alpha:.5,duration:70,yoyo:true});}
     if(result.applied>0){this.pacing.impact(this.time.now);this.feed.push(this.time.now,(team==='blue'?'ALLY':'ENEMY')+' champion -'+result.applied+' HP','hit');}
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));
     if(result.ko){
       const team=sprite.getData('team');
       const casualty=this.match.eliminate(id);
       if(casualty.accepted){this.tactics.grantSupply(team==='blue'?'red':'blue',15);this.feed.push(this.time.now,(team==='blue'?'BLUE':'RED')+' champion eliminated','ko');}
+      this.telegraphs.cancelFor(id);
       sprite.setVelocity(0,0);sprite.setActive(false).setVisible(false);
       if(this.match.winner)this.finishMatch();
     }
@@ -173,10 +176,27 @@ class Arena extends Phaser.Scene {
       blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
       red:{team:'red',x:e.x,hp:this.director.fighters.enemy.hp}
     },this.cover);
+    for(const attack of this.telegraphs.popReady(time)){
+      const attacker=this.companions.units.find(u=>u.id===attack.attacker);
+      if(!attacker||attacker.hp<=0)continue;
+      if(attack.target==='hero'||attack.target==='enemy'){
+        const target=attack.target==='hero'?p:e;
+        if(target.active)this.hit(target,attack.damage,'melee');
+      }else{
+        const victim=this.companions.units.find(u=>u.id===attack.target);
+        if(!victim||victim.hp<=0)continue;
+        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,attack.damage,time);
+        const hit=this.companions.wound(victim.id,mitigation.damage);
+        if(hit.applied>0)this.pacing.impact(time);
+        if(hit.ko){this.match.eliminate('ai-'+victim.id);this.telegraphs.cancelFor(victim.id);this.tactics.grantSupply(attacker.team,15);this.feed.push(time,(victim.team==='blue'?'BLUE':'RED')+' '+victim.role+' eliminated','ko');this.companionSprites.get(victim.id)?.destroy();this.companionSprites.delete(victim.id);this.healthLabels.get(victim.id)?.destroy();this.healthLabels.delete(victim.id);if(this.match.winner){this.finishMatch();return;}}
+      }
+      if(this.match.phase==='finished')return;
+    }
     for(const action of aiActions){
-      if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;}
+      if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.setText(healthLabel(unit.hp,unit.maxHp));}}
       if(action.type==='cover-attack')this.damageCover(action.coverId,action.damage);
       if(action.type==='attack'){
+        if(action.ability){const target=action.targetId==='champion'?(action.team==='blue'?'enemy':'hero'):action.targetId;const pending=this.telegraphs.schedule(time,action.id,target,action.damage);if(pending)this.feed.push(time,action.ability.toUpperCase()+' incoming','warning');continue;}
         const attacker=this.companions.units.find(u=>u.id===action.id);
         if(action.targetId==='champion'){
           const target=action.team==='blue'?e:p;
@@ -189,6 +209,8 @@ class Arena extends Phaser.Scene {
           const result=this.companions.wound(action.targetId,mitigation.damage);
           if(result.applied>0)this.pacing.impact(time);
           if(result.ko){
+            this.telegraphs.cancelFor(action.targetId);
+            this.healthLabels.get(action.targetId)?.destroy();this.healthLabels.delete(action.targetId);
             const fallen=this.companions.units.find(u=>u.id===action.targetId);
             this.match.eliminate('ai-'+action.targetId);
             this.feed.push(time,(victim.team==='blue'?'BLUE':'RED')+' '+victim.role+' eliminated','ko');

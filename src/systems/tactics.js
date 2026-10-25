@@ -48,17 +48,24 @@ export class TacticalBattle {
   const defense={id:this.nextDefenseId++,team,kind,x,hp:spec.maxHp,lastFired:-Infinity};
   this.defenses.push(defense);return {accepted:true,defense:{...defense}};
  }
- getTargets(team,enemyX,timeMs){
+ getTargets(team,opponents,timeMs){
   this.requireTeam(team);
+  if(!Number.isFinite(timeMs))throw new RangeError('Invalid defense time');
   const enemyTeam=team==='blue'?'red':'blue';
+  // Old numeric champion-only callers remain valid; the arena supplies living 10v10 targets.
+  const candidates=(Array.isArray(opponents)?opponents:[{id:'champion',x:opponents,hp:1}])
+   .filter(u=>u&&u.hp>0&&u.id!=null&&Number.isFinite(u.x));
   const attacks=[];
   for(const d of this.defenses){
    if(d.team!==team||d.hp<=0||d.kind==='shield')continue;
    const spec=DEFENSE_CATALOG[d.kind];
-   if(Math.abs(d.x-enemyX)>spec.range||timeMs-d.lastFired<spec.cooldownMs)continue;
+   if(timeMs-d.lastFired<spec.cooldownMs)continue;
+   const target=candidates.filter(u=>Math.abs(d.x-u.x)<=spec.range)
+    .sort((a,b)=>Math.abs(d.x-a.x)-Math.abs(d.x-b.x)||String(a.id).localeCompare(String(b.id)))[0];
+   if(!target)continue;
    d.lastFired=timeMs;
-   attacks.push({defenseId:d.id,targetTeam:enemyTeam,damage:spec.damage,kind:d.kind});
-   if(d.kind==='trap')d.hp=0; // consumed on detonation
+   attacks.push({defenseId:d.id,targetTeam:enemyTeam,targetId:target.id,damage:spec.damage,kind:d.kind});
+   if(d.kind==='trap')d.hp=0; // consumed only on an actual living target
   }
   return attacks;
  }

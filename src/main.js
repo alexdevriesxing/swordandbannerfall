@@ -2,7 +2,7 @@ import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
 import { TacticalBattle } from './systems/tactics.js';
 import { CompanionDirector } from './systems/companions.js';
-import { BattlefieldCover } from './systems/cover.js';
+import { BattlefieldCover, shotObstruction } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { interceptDamage } from './systems/abilities.js';
@@ -186,7 +186,7 @@ class Arena extends Phaser.Scene {
     const nearest=this.championTarget(source,650,'ranged',true);
     // A nearby barricade can be breached even when opponents are beyond shot range.
     const aimX=nearest?.x??target.x;
-    const obstruction=this.cover.obstruction(source.x,aimX);
+    const obstruction=shotObstruction(this.cover,{x:source.x,y:source.y-17},{x:aimX,y:(nearest?.y??target?.y??590)-17});
     if(obstruction&&Math.abs(source.x-obstruction.x)<650){this.damageCover(obstruction.id,18);return;}
     if(!nearest)return;
     const dir=Math.sign(nearest.x-source.x)||1;
@@ -222,7 +222,7 @@ class Arena extends Phaser.Scene {
       const victim=this.companions.units.find(u=>u.id===id);
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
-      if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
+      if(shotObstruction(this.cover,{x:projectile.x,y:projectile.y},{x:victim.x,y:victim.y-17})){projectile.destroy();continue;}
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
       if(sweptCompanionHit(previous,{x:projectile.x,y:projectile.y},victim)){

@@ -12,7 +12,7 @@ import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
 import { aimVelocity } from './systems/ballistics.js';
-import { sweptCompanionHit } from './systems/projectile-impact.js';
+import { sweptProjectileImpact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
@@ -222,10 +222,11 @@ class Arena extends Phaser.Scene {
       const victim=this.companions.units.find(u=>u.id===id);
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
-      if(shotObstruction(this.cover,{x:projectile.x,y:projectile.y},{x:victim.x,y:victim.y-17})){projectile.destroy();continue;}
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
-      if(sweptCompanionHit(previous,{x:projectile.x,y:projectile.y},victim)){
+      const collision=sweptProjectileImpact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
+      if(collision==='cover'){projectile.destroy();continue;}
+      if(collision==='unit'){
         const damage=projectile.getData('damage')??12;
         projectile.destroy();
         const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,damage,this.time.now);

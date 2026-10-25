@@ -77,3 +77,6 @@ Champion ranged attacks against AI companions now spawn the same licensed projec
 
 ### Formation and cover engagement pass
 The companion AI now computes deterministic, role-agnostic positional offsets when many same-team fighters converge on the same one-dimensional lane destination. Hunter orders still advance to barricade standoff and attack blocking destructible cover until a route opens; other orders maintain their defensive behavior. Regression tests cover stable spacing, absence of friendly/enemy confusion, and breach-range eligibility. This is **not** true 2D pathfinding, jumping, lane-switching, or physics-based navigation around an intact wall. Those remain future work, alongside asset-complete browser tests.
+
+### Autonomous AI jump traversal
+Hunters can now initiate deterministic, cooldown-limited airborne traversal of narrow barricades, while wider obstructions still require coordinated breaching. The scene renders their arc using the existing final fighter textures and keeps health labels attached. AI units do not attack while jumping. This is single-lane jump traversal, not a full platform-graph navigation system; multi-storey level traversal, physical collision/landing and final jump animations still require implementation and browser QA.

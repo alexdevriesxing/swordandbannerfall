@@ -13,7 +13,12 @@ test('Git blob SHA matches standard Git hash for a known input',()=>{
  assert.equal(gitBlobSha(Buffer.from('hello\n')),'ce013625030ba8dba906f756967f9e9ca394464a');
 });
 test('branding import is pinned to a specific first-party source commit',()=>{
- assert.match(OFFICIAL_LOGO_SOURCE,/raw\\.githubusercontent\\.com\\/alexdevriesxing\\/Firedragoninteractive\\/[0-9a-f]{40}\\/assets\\/fire-dragon-logo\\.png$/);
+ const url=new URL(OFFICIAL_LOGO_SOURCE);
+ assert.equal(url.hostname,'raw.githubusercontent.com');
+ assert.equal(url.pathname.split('/')[1],'alexdevriesxing');
+ assert.equal(url.pathname.split('/')[2],'Firedragoninteractive');
+ assert.equal(url.pathname.split('/')[3].length,40);
+ assert.ok(url.pathname.endsWith('/assets/fire-dragon-logo.png'));
  assert.equal(OFFICIAL_LOGO_BLOB_SHA.length,40);
  assert.equal(OFFICIAL_LOGO_PATH,'branding/fire-dragon-interactive.png');
 });

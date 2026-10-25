@@ -3,6 +3,7 @@ import { SquadCoordinator } from './squad.js';
 import { formationGoal, breachCandidate } from './formation.js';
 import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
 import { platformJump, advancePlatformJump } from './platform-routes.js';
+import { combatElevation } from './elevation.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -20,7 +21,7 @@ export class CompanionDirector {
   const spec=ROLES[role];hp??=spec.hp;damage??=spec.damage;speed??=spec.speed;
   if(!['blue','red'].includes(team)||!Number.isFinite(x))throw new Error('Invalid companion');
   if(this.units.filter(u=>u.team===team&&u.hp>0).length>=this.maxPerTeam)return null;
-  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,platformNode,lastAttack:-Infinity};
+  const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,platformNode,y:GROUND_Y,lastAttack:-Infinity};
   this.units.push(unit);return {...unit};
  }
  command(team,order){
@@ -86,7 +87,7 @@ export class CompanionDirector {
    }
    if(unit.platformJump){
     const motion=advancePlatformJump(unit,timeMs);
-    if(motion){if(!unit.platformJump){unit.platformNode=unit.pendingPlatformNode;unit.pendingPlatformNode=null;}actions.push(motion);continue;}
+    if(motion){unit.y=motion.y;if(!unit.platformJump){unit.platformNode=unit.pendingPlatformNode;unit.pendingPlatformNode=null;}actions.push(motion);continue;}
    }
    // Spread a crowded single-lane squad before applying obstacle standoff.
    goal=formationGoal(unit,goal,snapshot);
@@ -97,21 +98,22 @@ export class CompanionDirector {
    }
    if(unit.jump){
     const motion=advanceJump(unit,timeMs);
-    if(motion){actions.push(motion);continue;}
+    if(motion){unit.y=motion.y;actions.push(motion);continue;}
    }
    // Grounded units stop at intact barriers.
    if(cover)goal=cover.approach(unit.x,goal);
    const dist=goal-unit.x;
    const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
-   actions.push({type:'move',id:unit.id,x:unit.x,y:GROUND_Y});
+   unit.y=platforms&&unit.platformNode?(platforms.nodes.get(unit.platformNode)?.y??GROUND_Y):GROUND_Y;
+   actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
    const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});
    if(breach&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
-   }else if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
+   }else if(!blockedShot&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)}).melee&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     const special=specialAttack(unit,timeMs);
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage+(special?.bonusDamage??0),ability:special?.ability??null});

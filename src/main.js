@@ -181,10 +181,12 @@ class Arena extends Phaser.Scene {
   }
   fire(source,target){
     const nearest=this.championTarget(source,650,'ranged',true);
+    // A nearby barricade can be breached even when opponents are beyond shot range.
+    const aimX=nearest?.x??target.x;
+    const obstruction=this.cover.obstruction(source.x,aimX);
+    if(obstruction&&Math.abs(source.x-obstruction.x)<650){this.damageCover(obstruction.id,18);return;}
     if(!nearest)return;
     const dir=Math.sign(nearest.x-source.x)||1;
-    const obstruction=this.cover.obstruction(source.x,nearest.x);
-    if(obstruction){this.damageCover(obstruction.id,18);return;}
     const originX=source.x+dir*43,originY=source.y-17;
     const bullet=this.bullets.create(originX,originY,'missile').setScale(.6);
     bullet.setData('team',source.getData('team'));
@@ -351,7 +353,9 @@ class Arena extends Phaser.Scene {
       // Continue fighting surviving squadmates even after the player champion falls.
       if(decision.target&&time-this.lastEnemyAction>620){
         this.lastEnemyAction=time;
+        const barricade=this.cover.obstruction(e.x,decision.target.x);
         if(this.championTarget(e,112))this.strike(e,p);
+        else if(barricade&&Math.abs(barricade.x-e.x)<210)this.fire(e,p);
         else if(Math.abs(decision.target.x-e.x)<560&&this.director.rng.next()<.28)this.fire(e,p);
       }
     }

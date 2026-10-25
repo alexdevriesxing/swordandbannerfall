@@ -11,6 +11,8 @@ import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
+import { PlatformRoutes } from './systems/platform-routes.js';
+import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -25,7 +27,8 @@ const ASSETS = {
   trap:'/assets/defenses/trap.png',
   turret:'/assets/defenses/turret.png',
   shield:'/assets/defenses/shield.png',
-  barricade:'/assets/arena/destructible-barricade.png'
+  barricade:'/assets/arena/destructible-barricade.png',
+  gantry:'/assets/arena/iron-citadel-gantry.png'
 };
 class Boot extends Phaser.Scene {
   constructor(){super('Boot');}
@@ -55,19 +58,36 @@ class Arena extends Phaser.Scene {
     this.feed=new CombatFeed();this.pacing=new BattlePacing();this.telegraphs=new AttackTelegraphs();this.healthLabels=new Map();
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
+    validateIronCitadel();
+    this.platforms=new PlatformRoutes(IRON_CITADEL_NODES,IRON_CITADEL_LINKS);
+    this.platformBodies=this.physics.add.staticGroup();
+    for(const platform of IRON_CITADEL_GANTRIES){
+      const sprite=this.platformBodies.create(platform.x,platform.y,'gantry');
+      sprite.setDisplaySize(platform.width,platform.height).setDepth(2);
+      sprite.refreshBody();
+    }
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.match.register('blue','hero');this.match.register('red','enemy');
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
+    this.physics.add.collider(this.player,this.platformBodies);
+    this.physics.add.collider(this.enemy,this.platformBodies);
     const formations=[
-      ...Array.from({length:9},(_,i)=>['blue',70+i*31,'knight',['sentinel','ranger','vanguard'][i%3]]),
-      ...Array.from({length:9},(_,i)=>['red',1210-i*31,'raider',['sentinel','ranger','vanguard'][i%3]])
+      ...Array.from({length:9},(_,i)=>['blue',i===7?350:70+i*31,'knight',['sentinel','ranger','vanguard'][i%3],i===7?'west-gantry':null]),
+      ...Array.from({length:9},(_,i)=>['red',i===7?930:1210-i*31,'raider',['sentinel','ranger','vanguard'][i%3],i===7?'east-gantry':null])
     ];
-    for(const [team,x,texture,role] of formations){
-      const unit=this.companions.add(team,x,{role});
-      if(unit){this.match.register(team,'ai-'+unit.id);const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);this.healthLabels.set(unit.id,this.add.text(x,536,healthLabel(unit.hp,unit.maxHp),{fontFamily:'system-ui',fontSize:'11px',color:team==='blue'?'#92d7ff':'#ffabab'}).setOrigin(.5).setDepth(9));}
+    for(const [team,x,texture,role,spawnNode] of formations){
+      const platformNode=spawnNode??this.platforms.nearest(x,590,{maxDistance:300})?.id??null;
+      const unit=this.companions.add(team,x,{role,platformNode});
+      if(unit){
+        this.match.register(team,'ai-'+unit.id);
+        const y=this.platforms.nodes.get(platformNode)?.y??590;
+        const visual=this.add.image(x,y,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);
+        this.companionSprites.set(unit.id,visual);
+        this.healthLabels.set(unit.id,this.add.text(x,y-54,healthLabel(unit.hp,unit.maxHp),{fontFamily:'system-ui',fontSize:'11px',color:team==='blue'?'#92d7ff':'#ffabab'}).setOrigin(.5).setDepth(9));
+      }
     }
     // Phaser passes the projectile group member first, the champion sprite second.
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(projectile,target)=>{
@@ -221,9 +241,9 @@ class Arena extends Phaser.Scene {
     if(this.match.phase==='finished')return;
     const pace=this.pacing.update(time,true);
     const aiActions=this.companions.update(time,Math.min(delta*pace,65),{
-      blue:{team:'blue',x:p.x,hp:this.director.fighters.hero.hp},
-      red:{team:'red',x:e.x,hp:this.director.fighters.enemy.hp}
-    },this.cover);
+      blue:{team:'blue',x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:320})?.id??null,hp:this.director.fighters.hero.hp},
+      red:{team:'red',x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:320})?.id??null,hp:this.director.fighters.enemy.hp}
+    },this.cover,this.platforms);
     for(const attack of this.telegraphs.popReady(time)){
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;

@@ -47,3 +47,6 @@ The arena now creates **nine autonomous AI companions and one primary champion p
 
 ### Role abilities and match cleanup (October 2026)
 The active arena no longer invokes the obsolete ten-duel round/card transition methods. The single ten-versus-ten elimination controller remains the match authority. AI companions automatically activate cooldown-based Vanguard cleave and Ranger precision attacks; nearby Sentinel allies can periodically reduce incoming damage by 40%. These mechanics have deterministic unit tests. The older standalone CombatDirector still contains legacy methods for compatibility with historical tests but those methods are not used by the scene. This is still an unverified engineering build pending CI, licensed production art, combat balance and browser smoke testing.
+
+### Combat readability and anti-stalemate pass
+The arena displays a bounded combat event feed for champion damage, fighter eliminations, destroyed barricades and match victory. A deterministic battle-pacing controller temporarily increases autonomous movement and enemy pursuit speed after an extended interval without meaningful damage; a successful hit resets the timer. This does **not** add procedural art or substitute for combat animations. The new model has unit tests, but the browser build and licensed artwork integration still require verification.

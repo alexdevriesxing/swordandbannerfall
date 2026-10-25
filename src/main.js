@@ -16,6 +16,7 @@ import { sweptProjectileImpact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
+import { matchResultView } from './systems/match-summary.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
@@ -120,6 +121,7 @@ class Arena extends Phaser.Scene {
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
+    this.endShown=false;
     this.feedback.setText('PREPARE DEFENSES: F trap / G turret / H shield — ENTER to battle');
     this.showState();
   }
@@ -147,7 +149,9 @@ class Arena extends Phaser.Scene {
       const casualty=this.match.eliminate(id);
       if(casualty.accepted){this.tactics.grantSupply(team==='blue'?'red':'blue',15);this.feed.push(this.time.now,(team==='blue'?'BLUE':'RED')+' champion eliminated','ko');}
       this.telegraphs.cancelFor(id);
-      sprite.setVelocity(0,0);sprite.setActive(false).setVisible(false);
+      sprite.setVelocity(0,0);
+      sprite.body.enable=false;
+      sprite.setActive(false).setVisible(false);
       if(this.match.winner)this.finishMatch();
     }
   }
@@ -253,10 +257,23 @@ class Arena extends Phaser.Scene {
     this.feedback.setText(kind.toUpperCase()+' DEPLOYED');
   }
   finishMatch(){
-    this.feedback.setText(this.match.winner.toUpperCase()+' VICTORY — ALL ENEMIES ELIMINATED');
-    this.feed.push(this.time.now,this.match.winner.toUpperCase()+' TEAM WINS','victory');
+    if(this.endShown||!this.match.winner)return;
+    this.endShown=true;
+    const result=matchResultView(this.match.snapshot());
+    if(!result)return;
+    this.feed.push(this.time.now,result.headline,'victory');
+    this.telegraphs.clear();
+    this.bullets.clear(true,true);
+    this.player.setVelocity(0,0);
+    this.enemy.setVelocity(0,0);
+    this.feedback.setText(result.headline);
     this.showState();
-    this.player.setVelocity(0,0);this.enemy.setVelocity(0,0);
+    this.resultScreen=this.add.text(640,328,
+      result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+result.instruction,{
+      fontFamily:'system-ui',fontSize:'27px',fontStyle:'bold',color:'#ffffff',
+      align:'center',backgroundColor:'#101722ef',padding:{x:45,y:35},
+      lineSpacing:12
+    }).setOrigin(.5).setScrollFactor(0).setDepth(150);
   }
   showState(){
     const state=this.director.snapshot();
@@ -266,7 +283,10 @@ class Arena extends Phaser.Scene {
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
-    if(this.match.phase==='finished')return;
+    if(this.match.phase==='finished'){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER))this.scene.restart();
+      return;
+    }
     const p=this.player,e=this.enemy;
     if(this.preparation.phase==='setup'){
       if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');

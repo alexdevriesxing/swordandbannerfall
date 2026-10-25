@@ -6,7 +6,7 @@ export function validImpact({attacker,target,range,cover=null}){
  if(!Number.isFinite(attacker.x)||!Number.isFinite(target.x))return false;
  if(!(Number.isFinite(range)&&range>0))return false;
  if(Math.abs(attacker.x-target.x)>range)return false;
- if(!combatElevation(attacker,target).melee)return false;
+ if(!combatElevation(attacker,target)[attacker.role==='ranger'?'ranged':'melee'])return false;
  return !(cover&&cover.obstruction(attacker.x,target.x));
 }
 export function resolveTarget(attack,units,champions){

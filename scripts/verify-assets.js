@@ -1,11 +1,28 @@
 import {pathToFileURL} from 'node:url';
 import {existsSync,statSync,readFileSync} from 'node:fs';
-import {resolve,join} from 'node:path';
+import {resolve} from 'node:path';
+import {inspectImage} from './inspect-image.js';
 export const REQUIRED_ASSETS=[
  'arena/iron-citadel.webp','arena/citadel-ground.webp','arena/destructible-barricade.png','arena/iron-citadel-gantry.png',
  'fighters/knight.png','fighters/raider.png','fx/projectile.png','fx/slash.png',
  'branding/fire-dragon-interactive.png','defenses/trap.png','defenses/turret.png','defenses/shield.png'
 ];
+// Minimum native pixel dimensions at the displayed size: no automatic
+// upscaling of undersized production textures. Higher-resolution masters preferred.
+export const MINIMUM_DIMENSIONS=Object.freeze({
+ 'arena/iron-citadel.webp':[1920,1080],
+ 'arena/citadel-ground.webp':[1280,120],
+ 'arena/destructible-barricade.png':[82,125],
+ 'arena/iron-citadel-gantry.png':[240,24],
+ 'fighters/knight.png':[72,100],
+ 'fighters/raider.png':[72,100],
+ 'fx/projectile.png':[24,24],
+ 'fx/slash.png':[64,64],
+ 'branding/fire-dragon-interactive.png':[256,128],
+ 'defenses/trap.png':[62,44],
+ 'defenses/turret.png':[70,70],
+ 'defenses/shield.png':[62,44]
+});
 export function verifyAssets(root,entries=REQUIRED_ASSETS){
  const missing=[],empty=[],invalid=[];
  for(const entry of entries){
@@ -14,9 +31,10 @@ export function verifyAssets(root,entries=REQUIRED_ASSETS){
   if(!existsSync(filename)){missing.push(entry);continue;}
   if(!statSync(filename).isFile()||statSync(filename).size===0){empty.push(entry);continue;}
   const buffer=readFileSync(filename);
-  const png=entry.endsWith('.png')&&buffer.length>=8&&buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
-  const webp=entry.endsWith('.webp')&&buffer.length>=12&&buffer.toString('ascii',0,4)==='RIFF'&&buffer.toString('ascii',8,12)==='WEBP';
-  if(!png&&!webp)invalid.push(entry);
+  const format=entry.endsWith('.png')?'png':entry.endsWith('.webp')?'webp':null;
+  const image=inspectImage(buffer,format);
+  const minimum=MINIMUM_DIMENSIONS[entry];
+  if(!image||(minimum&&(image.width<minimum[0]||image.height<minimum[1])))invalid.push(entry);
  }
  return {ok:missing.length===0&&empty.length===0&&invalid.length===0,missing,empty,invalid};
 }
@@ -24,5 +42,5 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
  const root=resolve('public/assets');
  const result=verifyAssets(root);
  if(!result.ok){console.error('Production asset gate failed:',JSON.stringify(result,null,2));process.exitCode=1;}
- else console.log('All mandatory production asset file signatures verified. Check license register separately.');
+ else console.log('All mandatory production image structures, CRCs (PNG) and minimum dimensions verified. Check license register and visual QA separately.');
 }

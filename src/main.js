@@ -278,10 +278,22 @@ class Arena extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
-    for(const attack of this.tactics.getTargets('blue',e.x,time)){
-      this.hit(e,attack.damage,'ranged');
+    const hostileTargets=[
+      ...(this.director.fighters.enemy.hp>0?[{id:'enemy',x:e.x,hp:this.director.fighters.enemy.hp}]:[]),
+      ...this.companions.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>({id:u.id,x:u.x,hp:u.hp}))
+    ];
+    for(const attack of this.tactics.getTargets('blue',hostileTargets,time)){
       const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId);
       if(defense?.hp===0){this.defenseSprites.get(defense.id)?.destroy();this.defenseSprites.delete(defense.id);}
+      if(attack.targetId==='enemy')this.hit(e,attack.damage,'ranged');
+      else{
+        const victim=this.companions.units.find(u=>u.id===attack.targetId&&u.hp>0);
+        if(victim){
+          const protectedHit=this.tactics.incomingDamage(victim.team,attack.damage,victim.x);
+          const mitigated=interceptDamage(this.companions.units,victim.team,victim.x,protectedHit.remaining,time);
+          this.hitCompanion(victim,mitigated.damage,time);
+        }
+      }
       if(this.match.phase==='finished')return;
     }
     this.updateCompanionProjectiles();

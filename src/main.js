@@ -438,4 +438,32 @@ class Arena extends Phaser.Scene {
     this.showState();
   }
 }
-new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena]});
+const swordBannerGame=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena]});
+
+// Strictly read-only QA introspection on loopback hosts with an explicit flag.
+// Shipping the build publicly does not enable this interface or any debug actions.
+if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname)
+  &&new URLSearchParams(window.location.search).has('qa')){
+ Object.defineProperty(window,'__SWORD_BANNERFALL_QA__',{
+  configurable:false,
+  value:Object.freeze({
+   snapshot:()=>{
+    let scene;
+    try{scene=swordBannerGame.scene.getScene('Arena');}catch{return null;}
+    if(!scene?.sys.isActive()||!scene.match)return null;
+    return {
+     match:scene.match.snapshot(),
+     preparation:scene.preparation?.phase??null,
+     fighters:{
+      blue:{x:scene.player?.x,y:scene.player?.y,active:scene.player?.active,
+        velocityY:scene.player?.body?.velocity?.y??null},
+      red:{x:scene.enemy?.x,y:scene.enemy?.y,active:scene.enemy?.active}
+     },
+     companions:scene.companions.units.filter(u=>u.hp>0).length,
+     projectiles:scene.bullets?.countActive()??0,
+     cover:scene.cover.snapshot().map(c=>({id:c.id,hp:c.hp}))
+    };
+   }
+  })
+ });
+}

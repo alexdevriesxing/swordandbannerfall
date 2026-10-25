@@ -55,3 +55,20 @@ After installation, use Actions → **Full Chromium gameplay and replay QA** to 
 - `cards/war-cry.png`, `cards/shieldwall.png`, `cards/swift-march.png`, `cards/field-medics.png`, `cards/war-chest.png`, `cards/deadeye.png`
 
 The one existing official `branding/fire-dragon-interactive.png` remains separate from this 17-image generated artwork pack.
+
+## Simpler GitHub import — no PowerShell, Python or local repository checkout
+
+The repository now has a **dedicated owner-only GitHub attachment importer**:
+
+**https://github.com/alexdevriesxing/swordandbannerfall/issues/1**
+
+1. Download `Sword_Bannerfall_Original_Art_Pack_v1.zip` from the originating ChatGPT conversation.
+2. Open [Issue #1](https://github.com/alexdevriesxing/swordandbannerfall/issues/1) while logged into the repository-owner GitHub account.
+3. Drag and drop the unchanged ZIP into a **new issue comment** and submit the comment with the attachment hyperlink.
+4. GitHub Actions will run the workflow `Import owner-approved generated artwork` automatically. Only comments by `alexdevriesxing` on Issue #1 are eligible.
+5. The workflow accepts only GitHub-generated attachment URLs, checks **all three source sheets and all 17 textures** against their existing SHA-256 locks, and runs `npm run check:release`, `npm test`, `npm run build` and `npm run check:offline-bundle`.
+6. Only after every check passes will it commit the 17 original image files to `public/assets/`. It never replaces the original studio logo, invents artwork, publishes a download or creates a paid listing.
+
+This route is easier than manually applying the files to a local Git checkout, but **still requires attaching the source ZIP once**, because this chat's working container cannot transmit the generated binary ZIP into GitHub directly. The public issue attachment will itself be publicly accessible, just like the public project's assets; do not attach any other private files.
+
+When the import run is green, continue with the separate real Chromium game playthrough and the Windows QA installer workflow, which have deliberately distinct release checks.

@@ -10,7 +10,7 @@ export class SquadCoordinator {
   const center=squad.length?squad.reduce((sum,u)=>sum+u.x,0)/squad.length:championX;
   const scoring=f=>{
     const risk=Math.abs(f.x-championX);
-    const protection=order==='guard'&&risk<250?200:0;
+    const protection=order==='guard'&&risk<250?500:0;
     const weakened=Number.isFinite(f.hp)?Math.max(0,100-f.hp)*.5:0;
     return Math.abs(f.x-center)-protection-weakened;
   };

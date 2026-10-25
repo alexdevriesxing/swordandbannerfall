@@ -205,8 +205,111 @@
       ],
       "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
       "note": "Reviewed format, transparent matting, crop, icon/sprite readability and dimensions; no claim of completed animation or commercial game testing."
+    },
+    "cards/deadeye.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/deadeye.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "b327254d9a4cb0c887e1d4414163a769cd34e66ff00e0f7485538aab4f7076cd",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
+    },
+    "cards/field-medics.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/field-medics.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "8663c4a90f81bfd0badd2b8dd795749b2ac46a439cf8aad1bd163cc840ff1ed7",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
+    },
+    "cards/shieldwall.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/shieldwall.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "70558f7d9351e40bd666da29facc8fbe58eb4cffd13123794140932174eafae4",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
+    },
+    "cards/swift-march.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/swift-march.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "c7b015aba51fd6e920481d71d5e3abb23dbc1a5da0484a5de900c56607937a20",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
+    },
+    "cards/war-chest.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/war-chest.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "56d9c4844fc2c4542afddb39566162a87f79aa1fb100d6f14596c9195853fb41",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
+    },
+    "cards/war-cry.png": {
+      "creator": "Original image generation commissioned for Sword & Bannerfall by project owner",
+      "source": "User-directed original generated card illustrations, 2026-10-25; source sheets pinned in assets/generated-pack-lock.json; export path Sword_Bannerfall_Original_Art_Pack_v1/cards/war-cry.png",
+      "license": "Owner-directed original generative artwork approved for this game under the owner's delegated asset-review authority, without an exclusivity guarantee",
+      "approved": true,
+      "decision": "approved-generated-integration",
+      "reviewer": "Project art reviewer acting under owner-delegated approval",
+      "reviewedAt": "2026-10-25",
+      "rightsBasis": "Original assets generated at owner's request; approval covers use in this project, not a legal guarantee against similarities or independently established title.",
+      "sha256": "52fbfd253798b4436d5e132109a6dd0392fd37c357cc7746551323a37a85ee44",
+      "dimensions": [
+        512,
+        512
+      ],
+      "qaStatus": "needs-full-Phaser-browser-and-animation-QA",
+      "note": "Illustrated card art visually reviewed as source-sheet extraction; display at 172px requires Chromium playthrough and readability validation."
     }
   },
   "generatedPackId": "Sword_Bannerfall_Original_Art_Pack_v1",
-  "generatedCoreApproved": 11
+  "generatedCoreApproved": 11,
+  "generatedTotalApproved": 17
 }

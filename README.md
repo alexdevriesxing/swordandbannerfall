@@ -92,3 +92,6 @@ Optional authored-platform AI navigation now has a declared `platforms` update p
 
 ### Takeoff proximity fix
 A platform jump now requires the AI fighter to be within 36 world units of the authored takeoff node. Hunter AI walks toward the takeoff position before scheduling the jump, preventing apparent teleportation from distant positions. This does not implement platform collision, physical landings, or fully authored multi-level arena artwork. Browser playtesting remains pending.
+
+### Platform route safety check
+Authored platform connections are now filtered for maximum supported leap distance (300 units), vertical displacement (145 units), and safe landing coordinates. Route discovery no longer returns a path that contains an impossible jump. Additional tests cover disconnected elevations and off-arena destinations. This remains logic-level protection, not verified sprite/platform physics or final-art gameplay.

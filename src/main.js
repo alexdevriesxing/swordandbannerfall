@@ -18,7 +18,7 @@ import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
-import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces } from './levels/arena-physics.js';
+import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces, isGrounded, canDropThroughGantry } from './levels/arena-physics.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -388,8 +388,8 @@ class Arena extends Phaser.Scene {
     }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     if(p.active)p.setVelocityX(x*265);
-    if(p.active&&p.body.blocked.down&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||Phaser.Input.Keyboard.JustDown(this.keys.W)))p.setVelocityY(-660);
-    if(p.active&&p.body.blocked.down&&Phaser.Input.Keyboard.JustDown(this.keys.S)){
+    if(p.active&&isGrounded(p.body)&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||Phaser.Input.Keyboard.JustDown(this.keys.W)))p.setVelocityY(-660);
+    if(p.active&&canDropThroughGantry(p.body,p.x,IRON_CITADEL_GANTRIES)&&Phaser.Input.Keyboard.JustDown(this.keys.S)){
       // S drops through one-way gantries but cannot fall through the solid ground.
       this.playerDropUntil=time+700;
       p.setVelocityY(175);
@@ -408,7 +408,7 @@ class Arena extends Phaser.Scene {
     }
     if(e.active){
       const decision=enemyChampionDecision({
-        x:e.x,y:e.y,grounded:e.body.blocked.down,
+        x:e.x,y:e.y,grounded:isGrounded(e.body),
         blueChampion:{x:p.x,y:p.y,hp:this.director.fighters.hero.hp},
         blueUnits:this.companions.units,platforms:this.platforms,
         timeMs:time,nextTraversalAt:this.nextEnemyTraversalAt

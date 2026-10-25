@@ -272,17 +272,23 @@ class Arena extends Phaser.Scene {
       }
     }
   }
+  showComebackCards(){
+    const offer=this.comeback.offer('blue');
+    if(!offer){this.cardPrompt.setVisible(false);return;}
+    const queued=this.comeback.snapshot().queued.blue;
+    this.cardPrompt.setText('TURN THE TIDE — CHOOSE 1 / 2 / 3'+
+      (queued?'  (+'+queued+' NEXT)':'')+'\n'+
+      offer.options.map((card,i)=>(i+1)+'.  '+card.name.toUpperCase()+' — '+card.description).join('\n'));
+    this.cardPrompt.setVisible(true);
+  }
   offerComeback(team,remaining,ended){
     const offer=this.comeback.casualty(team,{remaining,ended});
     if(!offer)return;
     if(team==='red'){
-      // Enemy captain's deterministic counterpick; no hidden randomness.
-      const pick=remaining<5?0:1;
-      this.chooseComeback('red',pick);
+      // Enemy captain chooses immediately; no artificial targeting or RNG.
+      this.chooseComeback('red',remaining<5?0:1);
     }else{
-      this.cardPrompt.setText('TURN THE TIDE — SELECT ONE CARD (1 / 2 / 3)\n'+
-        offer.options.map((card,i)=>(i+1)+'.  '+card.name.toUpperCase()+' — '+card.description).join('\n'));
-      this.cardPrompt.setVisible(true);
+      this.showComebackCards();
       this.feed.push(this.time.now,'Comeback card ready: choose 1, 2 or 3','card');
     }
   }
@@ -297,7 +303,7 @@ class Arena extends Phaser.Scene {
       const champion=this.director.fighters[team==='blue'?'hero':'enemy'];
       if(champion.hp>0)champion.hp=Math.min(champion.maxHp,champion.hp+card.heal);
     }
-    if(team==='blue')this.cardPrompt.setVisible(false);
+    if(team==='blue')this.showComebackCards();
     this.feed.push(this.time.now,team.toUpperCase()+' CARD: '+card.name.toUpperCase(),'card');
     return true;
   }

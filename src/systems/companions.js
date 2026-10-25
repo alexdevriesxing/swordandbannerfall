@@ -1,5 +1,6 @@
 import { specialAttack } from './abilities.js';
 import { SquadCoordinator } from './squad.js';
+import { formationGoal, breachCandidate } from './formation.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -71,7 +72,9 @@ export class CompanionDirector {
    if(order==='hunt')goal=closest?closest.x-facing*(unit.role==='ranger'?180:unit.role==='sentinel'?35:20):fallback;
    // Automatically preserve wounded units, irrespective of player micromanagement.
    if(unit.hp/unit.maxHp<.25)goal=fallback;
-   // Stop short of surviving obstacles; ranged shots cannot pass through cover.
+   // Spread a crowded single-lane squad before applying obstacle standoff.
+   goal=formationGoal(unit,goal,snapshot);
+   // Units cannot phase through cover. Hunters breach obstructing obstacles.
    if(cover)goal=cover.approach(unit.x,goal);
    const dist=goal-unit.x;
    const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
@@ -79,7 +82,8 @@ export class CompanionDirector {
    actions.push({type:'move',id:unit.id,x:unit.x});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
    const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
-   if(blockedShot&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown&&Math.abs(blockedShot.x-unit.x)<=unit.range){
+   const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});
+   if(breach&&this.orders[unit.team]==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
    }else if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){

@@ -35,7 +35,7 @@ class Arena extends Phaser.Scene {
   create(){
     this.add.image(640,360,'background').setDisplaySize(1280,720);
     this.add.image(640,661,'ground').setDisplaySize(1280,120);
-    this.physics.world.setBounds(0,0,1280,720);
+    this.physics.world.setBounds(0,0,1280,660);
     this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();

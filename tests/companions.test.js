@@ -32,3 +32,14 @@ test('dead units no longer act',()=>{
  const c=new CompanionDirector();const u=c.add('blue',900);c.wound(u.id,100);
  assert.equal(c.update(1500,100,champions).length,0);
 });
+
+test('surviving blue companions automatically hunt when their champion is defeated',()=>{
+ const living=new CompanionDirector();living.add('blue',350);
+ living.update(1000,100,{blue:{team:'blue',x:90,hp:100},red:{team:'red',x:600,hp:100}});
+ const defeated=new CompanionDirector();defeated.add('blue',350);
+ defeated.update(1000,100,{blue:{team:'blue',x:90,hp:0},red:{team:'red',x:600,hp:100}});
+ assert.ok(living.units[0].x<350);
+ assert.ok(defeated.units[0].x>350);
+ // The explicit command stays unchanged; only the autonomous effective order changes.
+ assert.equal(defeated.orders.blue,'guard');
+});

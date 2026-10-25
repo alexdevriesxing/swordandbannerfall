@@ -16,6 +16,8 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       - run: npm test
       - run: npm run build
+      - name: Verify local file-safe bundle for Windows packaging
+        run: npm run check:offline-bundle
       - name: Check production-art readiness (informational until final assets approved)
         run: npm run check:assets
         continue-on-error: true

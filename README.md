@@ -86,3 +86,6 @@ Hunters can now initiate deterministic, cooldown-limited airborne traversal of n
 
 ### Elevated combat safety pass
 Optional authored-platform AI navigation now has a declared `platforms` update parameter, removing an undefined-variable runtime failure when the active flat arena updates companions. Companion Y positions track traversal and authored landing elevations. Regular AI melee attacks and delayed impact validation reject targets beyond the allowed vertical separation; dedicated regression tests cover ground, adjacent, and distant elevations. This is still only a rules layer until authored multi-level art and browser physics are integrated and tested.
+
+### Platform navigation compatibility fix
+`CompanionDirector.update` now explicitly accepts the optional authored-platform map as its fifth argument. This fixes a JavaScript `ReferenceError` that previously could stop even flat-arena combat. When authored platform data is supplied, AI units initialize their logical elevation from their assigned landing zone before target selection. Regression tests cover updates with no platform map, disconnected upper-floor enemies, and existing connected landing traversal. The live arena still does not render approved multi-level terrain or provide platform data; real platform collision and browser QA remain outstanding.

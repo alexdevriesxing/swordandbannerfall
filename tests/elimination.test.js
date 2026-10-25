@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {EliminationMatch} from '../src/systems/elimination.js';
+const setup=()=>{const m=new EliminationMatch();for(const team of ['blue','red']){m.register(team,team+'-champion');for(let i=1;i<=9;i++)m.register(team,team+'-ai-'+i);}m.begin();return m;};
+test('both teams begin with ten unique fighters',()=>{const m=setup();assert.equal(m.remaining('blue'),10);assert.equal(m.remaining('red'),10);assert.equal(m.phase,'fight');});
+test('companion and champion casualties share one score and cannot double count',()=>{const m=setup();assert.equal(m.eliminate('red-ai-1').remaining,9);assert.equal(m.eliminate('red-ai-1').accepted,false);assert.equal(m.eliminate('red-champion').remaining,8);});
+test('last fighter elimination ends combat without respawn',()=>{const m=setup();for(let i=1;i<=9;i++)m.eliminate('red-ai-'+i);assert.equal(m.winner,null);assert.equal(m.eliminate('red-champion').winner,'blue');assert.equal(m.phase,'finished');assert.equal(m.eliminate('blue-ai-1').accepted,false);});
+test('roster enforcement',()=>{const m=new EliminationMatch({fightersPerTeam:1});m.register('blue','a');assert.throws(()=>m.register('blue','a'));assert.throws(()=>m.register('blue','b'));assert.throws(()=>m.begin());});

@@ -88,8 +88,11 @@ export class CompanionDirector {
     if(route?.length>1){
      const from=platforms.nodes.get(unit.platformNode);
      const next=route[1];
-     // Approach the authored takeoff point before attempting an elevation change.
-     if(from&&Math.abs(unit.x-from.x)>36)goal=from.x;
+     // Same-elevation graph edges are traversed on foot; only elevation changes jump.
+     if(from&&Math.abs(from.y-next.y)<2){
+      goal=next.x;
+      unit.pendingWalkNode=next.id;
+     }else if(from&&Math.abs(unit.x-from.x)>36)goal=from.x;
      else{
       const plan=platformJump(unit,from,next,timeMs);
       if(plan){unit.platformJump=plan;unit.pendingPlatformNode=next.id;}
@@ -116,6 +119,12 @@ export class CompanionDirector {
    const dist=goal-unit.x;
    const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
+   // On an elevated landing, stay on the physical gantry until taking a valid jump.
+   const ledge=platforms?.nodes.get(unit.platformNode);
+   if(ledge?.width)unit.x=Math.max(ledge.x-ledge.width/2+16,Math.min(ledge.x+ledge.width/2-16,unit.x));
+   if(unit.pendingWalkNode&&platforms&&Math.abs(unit.x-platforms.nodes.get(unit.pendingWalkNode).x)<=36){
+    unit.platformNode=unit.pendingWalkNode;unit.pendingWalkNode=null;
+   }
    unit.y=platforms&&unit.platformNode?(platforms.nodes.get(unit.platformNode)?.y??GROUND_Y):GROUND_Y;
    actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
    if(!closest||unit.hp/unit.maxHp<.25)continue;

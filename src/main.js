@@ -68,9 +68,12 @@ class Arena extends Phaser.Scene {
       const unit=this.companions.add(team,x,{role});
       if(unit){this.match.register(team,'ai-'+unit.id);const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);this.healthLabels.set(unit.id,this.add.text(x,536,healthLabel(unit.hp,unit.maxHp),{fontFamily:'system-ui',fontSize:'11px',color:team==='blue'?'#92d7ff':'#ffabab'}).setOrigin(.5).setDepth(9));}
     }
-    this.physics.add.overlap(this.bullets,[this.player,this.enemy],(target,projectile)=>{
-      if(target.getData('team')===projectile.getData('team'))return;
-      projectile.destroy();this.hit(target,12,'ranged');
+    // Phaser passes the projectile group member first, the champion sprite second.
+    this.physics.add.overlap(this.bullets,[this.player,this.enemy],(projectile,target)=>{
+      if(!projectile.active||!target.active)return;
+      if(projectile.getData('team')===target.getData('team'))return;
+      projectile.destroy();
+      this.hit(target,12,'ranged');
     });
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);

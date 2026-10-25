@@ -29,7 +29,7 @@ export class CompanionDirector {
   const applied=Math.min(amount,unit.hp);unit.hp-=applied;
   return {applied,ko:unit.hp===0};
  }
- update(timeMs,deltaMs,champions){
+ update(timeMs,deltaMs,champions,cover=null){
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
@@ -60,12 +60,15 @@ export class CompanionDirector {
    if(order==='hunt')goal=closest?closest.x-facing*(unit.role==='ranger'?180:unit.role==='sentinel'?35:20):fallback;
    // Automatically preserve wounded units, irrespective of player micromanagement.
    if(unit.hp/unit.maxHp<.25)goal=fallback;
+   // Stop short of surviving obstacles; ranged shots cannot pass through cover.
+   if(cover)goal=cover.approach(unit.x,goal);
    const dist=goal-unit.x;
    const step=Math.min(Math.abs(dist),unit.speed*deltaMs/1000);
    unit.x=Math.min(1230,Math.max(50,unit.x+Math.sign(dist)*step));
    actions.push({type:'move',id:unit.id,x:unit.x});
    if(!closest||unit.hp/unit.maxHp<.25)continue;
-   if(Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
+   const blockedShot=cover&&cover.obstruction(unit.x,closest.x);
+   if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage});
    }

@@ -28,12 +28,39 @@ try{
  assert.deepEqual(setup.defenses.filter(d=>d.team==='red').map(d=>d.kind),['turret','shield']);
  assert.equal(setup.supply.red,20);
  assert.equal(setup.supply.blue,100);
+ assert.equal(setup.orders.blue,'guard');
  await page.screenshot({path:'artifacts/01-preparation.png'});
+
+ // Deploy one real player turret using the documented setup key, then
+ // verify supply accounting and placement collision rejection.
+ await page.keyboard.press('g');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.defenses.some(
+  d=>d.team==='blue'&&d.kind==='turret'),undefined,{timeout:3000});
+ const playerDefense=await snapshot();
+ assert.equal(playerDefense.supply.blue,55,'Turret must cost 45 supply');
+ assert.equal(playerDefense.defenses.filter(d=>d.team==='blue').length,1);
+ await page.keyboard.press('g');
+ await page.waitForTimeout(150);
+ const deniedDuplicate=await snapshot();
+ assert.equal(deniedDuplicate.supply.blue,55,'Blocked duplicate must not consume supply');
+ assert.equal(deniedDuplicate.defenses.filter(d=>d.team==='blue').length,1);
+ await page.screenshot({path:'artifacts/01b-player-turret.png'});
 
  await page.keyboard.press('Enter');
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='fight',undefined,{timeout:15000});
  await page.waitForTimeout(700); // Let Arcade settle onto physical ground.
  const before=await snapshot();
+ // Exercise the actual command-cycle and guard bindings while the match is live.
+ await page.keyboard.press('e');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.orders?.blue==='patrol',
+  undefined,{timeout:3000});
+ assert.equal((await snapshot()).orders.blue,'patrol');
+ await page.keyboard.down('l');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.stance==='guard',
+  undefined,{timeout:3000});
+ await page.keyboard.up('l');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.stance==='attack',
+  undefined,{timeout:3000});
  await page.keyboard.down('d');
  await page.waitForTimeout(250);
  await page.keyboard.up('d');
@@ -87,13 +114,19 @@ try{
  assert.deepEqual(replay.defenses.filter(d=>d.team==='red').map(d=>d.kind),['turret','shield']);
  assert.equal(replay.supply.red,20);
  assert.equal(replay.supply.blue,100);
+ assert.equal(replay.orders.blue,'guard','Replay must reset squad command');
+ assert.equal(replay.stance,'attack','Replay must reset guard stance');
+ assert.equal(replay.defenses.filter(d=>d.team==='blue').length,0,
+  'Replay must discard player-purchased defenses');
  assert.equal(replay.comeback.claims.blue,0,'Replay must reset all selected cards');
  assert.equal(replay.comeback.unlocked.blue,0,'Replay must reset unlocked drafts');
  await page.screenshot({path:'artifacts/04-replay-setup.png'});
 
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
-  'red preparation defenses','unassisted victory','comeback card input when unlocked','elimination invariants','defense state reset on replay'],cardsChosen,winner:result.match.winner}));
+  'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
+  'squad order command','guard stance','unassisted victory','comeback card input when unlocked',
+  'elimination invariants','defense state reset on replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);

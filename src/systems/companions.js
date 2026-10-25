@@ -38,6 +38,13 @@ export class CompanionDirector {
  update(timeMs,deltaMs,champions,cover=null,platforms=null){
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
+  // At the beginning of an authored-platform encounter, snap the logical elevation
+  // to its documented landing zone before computing AI targeting and routes.
+  if(platforms)for(const u of this.units){
+   if(u.hp>0&&u.platformNode&&!u.platformJump&&!u.jump&&u.y===GROUND_Y){
+    u.y=platforms.nodes.get(u.platformNode)?.y??GROUND_Y;
+   }
+  }
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
   const teamFocus={};
   for(const team of ['blue','red']){

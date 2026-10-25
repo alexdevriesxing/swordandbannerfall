@@ -91,3 +91,30 @@ test('invalid team, reward index and negative damage fail closed',()=>{
  draft.casualty('blue',{remaining:9});assert.throws(()=>draft.choose('blue',8),RangeError);
  assert.throws(()=>draft.damage('blue',-3),RangeError);
 });
+
+test('rapid back-to-back losses queue, rather than discard, unclaimed card offers',()=>{
+ const draft=new ComebackDraft();
+ draft.casualty('blue',{remaining:9});
+ draft.casualty('blue',{remaining:8});
+ draft.casualty('blue',{remaining:7});
+ draft.casualty('blue',{remaining:6});
+ draft.casualty('blue',{remaining:5});
+ assert.equal(draft.snapshot().unlocked.blue,3);
+ assert.equal(draft.snapshot().queued.blue,2);
+ assert.equal(draft.offer('blue').atLoss,1);
+ assert.equal(draft.choose('blue',0).id,'war-cry');
+ assert.equal(draft.offer('blue').atLoss,3);
+ assert.equal(draft.snapshot().queued.blue,1);
+ assert.equal(draft.choose('blue',1).id,'field-medics');
+ assert.equal(draft.offer('blue').atLoss,5);
+ assert.equal(draft.choose('blue',2).id,'war-cry');
+ assert.equal(draft.offer('blue'),null);
+ assert.equal(draft.snapshot().claims.blue,3);
+});
+test('queued offers have no effect before the player actually chooses',()=>{
+ const draft=new ComebackDraft();
+ for(let n=1;n<=5;n++)draft.casualty('blue',{remaining:10-n});
+ assert.equal(draft.damage('blue',10),10);
+ assert.equal(draft.speed('blue'),1);
+ assert.equal(draft.snapshot().claims.blue,0);
+});

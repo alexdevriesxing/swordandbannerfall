@@ -38,7 +38,13 @@ const ASSETS = {
   turret:gameAssetUrl('assets/defenses/turret.png',import.meta.env.BASE_URL),
   shield:gameAssetUrl('assets/defenses/shield.png',import.meta.env.BASE_URL),
   barricade:gameAssetUrl('assets/arena/destructible-barricade.png',import.meta.env.BASE_URL),
-  gantry:gameAssetUrl('assets/arena/iron-citadel-gantry.png',import.meta.env.BASE_URL)
+  gantry:gameAssetUrl('assets/arena/iron-citadel-gantry.png',import.meta.env.BASE_URL),
+  'card-war-cry':gameAssetUrl('assets/cards/war-cry.png',import.meta.env.BASE_URL),
+  'card-shieldwall':gameAssetUrl('assets/cards/shieldwall.png',import.meta.env.BASE_URL),
+  'card-swift-march':gameAssetUrl('assets/cards/swift-march.png',import.meta.env.BASE_URL),
+  'card-field-medics':gameAssetUrl('assets/cards/field-medics.png',import.meta.env.BASE_URL),
+  'card-war-chest':gameAssetUrl('assets/cards/war-chest.png',import.meta.env.BASE_URL),
+  'card-deadeye':gameAssetUrl('assets/cards/deadeye.png',import.meta.env.BASE_URL)
 };
 class Boot extends Phaser.Scene {
   constructor(){super('Boot');}
@@ -131,7 +137,16 @@ class Arena extends Phaser.Scene {
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
-    this.cardPrompt=this.add.text(640,330,'',{fontFamily:'system-ui',fontSize:'21px',fontStyle:'bold',color:'#ffeac1',backgroundColor:'#101722ee',align:'center',padding:{x:30,y:22},lineSpacing:12}).setOrigin(.5).setScrollFactor(0).setDepth(130).setVisible(false);
+    this.cardPrompt=this.add.text(640,207,'',{fontFamily:'system-ui',fontSize:'22px',fontStyle:'bold',color:'#ffeac1',backgroundColor:'#101722ee',align:'center',padding:{x:25,y:15}}).setOrigin(.5).setScrollFactor(0).setDepth(130).setVisible(false);
+    this.cardArtwork=Array.from({length:3},(_,i)=>{
+      const x=410+i*230;
+      const image=this.add.image(x,351,'card-war-cry').setDisplaySize(172,172)
+        .setScrollFactor(0).setDepth(131).setVisible(false);
+      const label=this.add.text(x,475,'',{fontFamily:'system-ui',fontSize:'16px',fontStyle:'bold',
+        color:'#ffffff',backgroundColor:'#101722ee',align:'center',padding:{x:10,y:8}})
+        .setOrigin(.5).setScrollFactor(0).setDepth(132).setVisible(false);
+      return {image,label};
+    });
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.endShown=false;
@@ -278,12 +293,20 @@ class Arena extends Phaser.Scene {
   }
   showComebackCards(){
     const offer=this.comeback.offer('blue');
-    if(!offer){this.cardPrompt.setVisible(false);return;}
+    if(!offer){
+      this.cardPrompt.setVisible(false);
+      for(const slot of this.cardArtwork){slot.image.setVisible(false);slot.label.setVisible(false);}
+      return;
+    }
     const queued=this.comeback.snapshot().queued.blue;
     this.cardPrompt.setText('TURN THE TIDE — CHOOSE 1 / 2 / 3'+
-      (queued?'  (+'+queued+' NEXT)':'')+'\n'+
-      offer.options.map((card,i)=>(i+1)+'.  '+card.name.toUpperCase()+' — '+card.description).join('\n'));
+      (queued?'  (+'+queued+' MORE)':''));
     this.cardPrompt.setVisible(true);
+    for(let i=0;i<3;i++){
+      const card=offer.options[i],slot=this.cardArtwork[i];
+      slot.image.setTexture('card-'+card.id).setVisible(true);
+      slot.label.setText((i+1)+'. '+card.name.toUpperCase()+'\n'+card.description).setVisible(true);
+    }
   }
   offerComeback(team,remaining,ended){
     const offer=this.comeback.casualty(team,{remaining,ended});
@@ -350,6 +373,7 @@ class Arena extends Phaser.Scene {
     this.feed.push(this.time.now,result.headline,'victory');
     this.telegraphs.clear();
     this.cardPrompt?.setVisible(false);
+    for(const slot of this.cardArtwork??[]){slot.image.setVisible(false);slot.label.setVisible(false);}
     this.bullets.clear(true,true);
     this.player.setVelocity(0,0);
     this.enemy.setVelocity(0,0);

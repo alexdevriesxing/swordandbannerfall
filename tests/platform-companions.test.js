@@ -38,3 +38,26 @@ test('ranger can shoot between nearby elevations while melee fighters cannot',()
  const result=ai.update(1000,16,champions,null,platforms);
  assert.ok(result.some(a=>a.type==='attack'&&a.id===ranger.id));
 });
+
+test('ground melee AI cannot hit a champion standing on a gantry above it',()=>{
+ const ai=new CompanionDirector();
+ const fighter=ai.add('blue',200,{role:'vanguard'});
+ ai.command('blue','hunt');
+ const champs={
+  blue:{team:'blue',x:180,y:590,hp:0},
+  red:{team:'red',x:210,y:445,hp:100,platformNode:'high'}
+ };
+ const actions=ai.update(1000,0,champs);
+ assert.equal(actions.some(a=>a.type==='attack'&&a.id===fighter.id),false);
+});
+test('ranger AI can attack elevated champions inside the ranged height envelope',()=>{
+ const ai=new CompanionDirector();
+ const fighter=ai.add('blue',200,{role:'ranger'});
+ ai.command('blue','hunt');
+ const champs={
+  blue:{team:'blue',x:180,y:590,hp:0},
+  red:{team:'red',x:210,y:445,hp:100,platformNode:'high'}
+ };
+ const actions=ai.update(1000,0,champs);
+ assert.equal(actions.some(a=>a.type==='attack'&&a.id===fighter.id),true);
+});

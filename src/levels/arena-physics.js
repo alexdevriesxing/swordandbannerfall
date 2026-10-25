@@ -34,3 +34,20 @@ export function validateGantrySurfaces(gantries){
  }
  return true;
 }
+
+/**
+ * Arcade sets touching.down on static-body collision, whereas world bounds may
+ * set blocked.down. Both count as a grounded state for player controls.
+ */
+export function isGrounded(body){
+ return Boolean(body&&(body.blocked?.down===true||body.touching?.down===true));
+}
+
+/** The S command may drop only from an authored gantry, never through the floor. */
+export function canDropThroughGantry(body,championX,gantries){
+ if(!isGrounded(body)||!Number.isFinite(body?.bottom)||!Number.isFinite(championX))return false;
+ return Array.isArray(gantries)&&gantries.some(g=>
+  Math.abs(body.bottom-(g.y-g.height/2))<=6
+  &&championX>=g.x-g.width/2-16&&championX<=g.x+g.width/2+16
+ );
+}

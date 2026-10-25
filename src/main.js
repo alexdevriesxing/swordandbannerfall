@@ -9,6 +9,7 @@ import { interceptDamage } from './systems/abilities.js';
 import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
+import { nearestOpponent } from './systems/targeting.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -107,18 +108,42 @@ class Arena extends Phaser.Scene {
       if(this.match.winner)this.finishMatch();
     }
   }
+  championTarget(source,range){
+    return nearestOpponent(source.x,source.getData('team'),{
+      blue:{x:this.player.x,hp:this.director.fighters.hero.hp},
+      red:{x:this.enemy.x,hp:this.director.fighters.enemy.hp}
+    },this.companions.units,{range,cover:this.cover});
+  }
+  hitCompanion(target,damage,time=this.time.now){
+    const result=this.companions.wound(target.id,damage);
+    if(result.applied>0)this.pacing.impact(time);
+    if(result.ko){
+      const outcome=this.match.eliminate('ai-'+target.id);
+      if(outcome.accepted)this.tactics.grantSupply(target.team==='blue'?'red':'blue',15);
+      this.telegraphs.cancelFor(target.id);
+      this.companionSprites.get(target.id)?.destroy();this.companionSprites.delete(target.id);
+      this.healthLabels.get(target.id)?.destroy();this.healthLabels.delete(target.id);
+      this.feed.push(time,(target.team==='blue'?'BLUE':'RED')+' '+target.role+' eliminated','ko');
+      if(outcome.winner)this.finishMatch();
+    }
+  }
   strike(source,target){
     const facing=target.x-source.x;
-    if(Math.abs(facing)<112&&Math.abs(target.y-source.y)<100&&!this.cover.obstruction(source.x,target.x)){
+    const selected=this.championTarget(source,112);
+    if(!selected)return;
+    if(Math.abs(selected.x-source.x)<112&&!this.cover.obstruction(source.x,selected.x)){
       const slash=this.add.image(source.x+Math.sign(facing)*70,source.y-15,'slash').setDepth(6).setScale(.5);
       this.tweens.add({targets:slash,alpha:0,scale:.85,duration:180,onComplete:()=>slash.destroy()});
-      this.hit(target,21,'melee');
+      if(selected.kind==='champion')this.hit(target,21,'melee');
+      else this.hitCompanion(selected,21);
     }
   }
   fire(source,target){
-    const dir=Math.sign(target.x-source.x)||1;
-    const obstruction=this.cover.obstruction(source.x,target.x);
+    const nearest=this.championTarget(source,650);
+    const dir=Math.sign((nearest?.x??target.x)-source.x)||1;
+    const obstruction=this.cover.obstruction(source.x,nearest?.x??target.x);
     if(obstruction){this.damageCover(obstruction.id,18);return;}
+    if(nearest?.kind==='companion'){this.hitCompanion(nearest,12);return;}
     const bullet=this.bullets.create(source.x+dir*43,source.y-17,'missile').setScale(.6);
     bullet.setData('team',source.getData('team'));bullet.body.setAllowGravity(false);
     bullet.setVelocityX(dir*650);
@@ -239,10 +264,10 @@ class Arena extends Phaser.Scene {
       this.tactics.order('blue',this.director.fighters.hero.command);
       this.companions.command('blue',this.director.fighters.hero.command);
     }
-    if(p.active&&e.active&&Phaser.Input.Keyboard.JustDown(this.keys.J)&&time-this.lastStrike>400){
+    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.J)&&time-this.lastStrike>400){
       this.lastStrike=time;this.strike(p,e);
     }
-    if(p.active&&e.active&&Phaser.Input.Keyboard.JustDown(this.keys.K)&&time-this.lastShot>900){
+    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.K)&&time-this.lastShot>900){
       this.lastShot=time;this.fire(p,e);
     }
     const gap=p.x-e.x;

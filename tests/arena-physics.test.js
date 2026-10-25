@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
  COMPANION_HEIGHT,GROUND_ART_HEIGHT,GROUND_ART_CENTER_Y,FLOOR_TOP_Y,
  CHAMPION_HEIGHT,CHAMPION_HITBOX_HEIGHT_RATIO,championHitbox,championLandingY,
- validateGantrySurfaces
+ validateGantrySurfaces,isGrounded,canDropThroughGantry
 } from '../src/levels/arena-physics.js';
 import {GROUND_Y} from '../src/systems/navigation.js';
 import {IRON_CITADEL_GANTRIES} from '../src/levels/iron-citadel.js';
@@ -32,4 +32,19 @@ test('both artist-authored gantry tops align with AI platform landing feet',()=>
 test('misaligned elevated terrain is rejected before Phaser loads the scene',()=>{
  assert.throws(()=>validateGantrySurfaces([{id:'bad',y:490,height:24,landingY:420}]),/does not align/);
  assert.throws(()=>validateGantrySurfaces([]),/No approved/);
+});
+
+test('Arcade touching.down permits jumps even when blocked.down is false',()=>{
+ assert.equal(isGrounded({blocked:{down:false},touching:{down:true}}),true);
+ assert.equal(isGrounded({blocked:{down:true},touching:{down:false}}),true);
+ assert.equal(isGrounded({blocked:{down:false},touching:{down:false}}),false);
+ assert.equal(isGrounded(null),false);
+});
+test('S drops through elevated gantries, never through the solid ground',()=>{
+ const gantry=IRON_CITADEL_GANTRIES[0];
+ const onGantry={bottom:gantry.y-gantry.height/2,blocked:{down:false},touching:{down:true}};
+ assert.equal(canDropThroughGantry(onGantry,gantry.x,IRON_CITADEL_GANTRIES),true);
+ assert.equal(canDropThroughGantry({...onGantry,bottom:FLOOR_TOP_Y},gantry.x,IRON_CITADEL_GANTRIES),false);
+ assert.equal(canDropThroughGantry({...onGantry,touching:{down:false}},gantry.x,IRON_CITADEL_GANTRIES),false);
+ assert.equal(canDropThroughGantry(onGantry,50,IRON_CITADEL_GANTRIES),false);
 });

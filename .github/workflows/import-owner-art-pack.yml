@@ -1,0 +1,97 @@
+name: Import owner-approved generated artwork
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: read
+
+concurrency:
+  group: verified-original-art-import
+  cancel-in-progress: false
+
+jobs:
+  verified-art-import:
+    if: >-
+      github.repository == 'alexdevriesxing/swordandbannerfall' &&
+      github.event.issue.number == 1 &&
+      !github.event.issue.pull_request &&
+      github.event.comment.user.login == 'alexdevriesxing'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout trusted default branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Resolve owner's GitHub attachment link
+        id: attachment
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          python3 - <<'PY'
+          import os,re
+          body=os.environ.get('COMMENT_BODY','')
+          # GitHub-generated issue-file attachment links only, no arbitrary hosts.
+          links=re.findall(r'https://github\.com/user-attachments/(?:files/\d+/Sword_Bannerfall_Original_Art_Pack_v1\.zip|assets/[a-fA-F0-9-]{36})',body)
+          if len(links)!=1 or 'Sword_Bannerfall_Original_Art_Pack_v1.zip' not in body:
+              raise SystemExit('Attach exactly one Sword_Bannerfall_Original_Art_Pack_v1.zip in the owner comment')
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as output:
+              output.write('url='+links[0]+'\n')
+          print('Found exact-owner artwork attachment. SHA verification follows before any copy.')
+          PY
+
+      - name: Download attached source ZIP with strict size limits
+        shell: bash
+        env:
+          ART_ATTACHMENT_URL: ${{ steps.attachment.outputs.url }}
+        run: |
+          curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 --max-filesize 20000000 --output /tmp/sword-original-art.zip "$ART_ATTACHMENT_URL"
+          test "$(stat -c %s /tmp/sword-original-art.zip)" -lt 20000000
+          test "$(stat -c %s /tmp/sword-original-art.zip)" -gt 100000
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify every source sheet and 17 original asset digests before copying
+        run: python scripts/install-art-pack.py /tmp/sword-original-art.zip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install JS dependencies for strict release checks
+        run: npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Enforce all 18 artwork and rights checks
+        run: npm run check:release
+
+      - name: Run entire combat regression suite
+        run: npm test
+
+      - name: Verify web and offline Windows-compatible builds
+        run: |
+          npm run build
+          npm run check:offline-bundle
+
+      - name: Commit only the 17 hash-verified generated artwork binaries
+        shell: bash
+        run: |
+          git add public/assets/arena/ public/assets/fighters/ public/assets/fx/ public/assets/defenses/ public/assets/cards/
+          if git diff --cached --quiet; then
+            echo 'All 17 verified artwork files already committed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Install all 17 owner-approved, SHA256-verified original game textures'
+          git push origin HEAD:main
+
+# Never publish a game, installer, release or checkout link from this workflow.
+# Full real-browser gameplay acceptance and Windows QA remain separate gates.

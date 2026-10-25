@@ -11,7 +11,8 @@ import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { shouldProjectileHit } from './systems/projectile.js';
-import { aimVelocity, overlapsCompanion } from './systems/ballistics.js';
+import { aimVelocity } from './systems/ballistics.js';
+import { sweptCompanionHit } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
@@ -191,6 +192,7 @@ class Arena extends Phaser.Scene {
     const dir=Math.sign(nearest.x-source.x)||1;
     const originX=source.x+dir*43,originY=source.y-17;
     const bullet=this.bullets.create(originX,originY,'missile').setScale(.6);
+    bullet.setData('previousX',originX).setData('previousY',originY);
     bullet.setData('team',source.getData('team'));
     bullet.setData('targetId',nearest.id);
     bullet.setData('damage',12);
@@ -203,6 +205,7 @@ class Arena extends Phaser.Scene {
     const shot=planCompanionShot({attacker,target,damage,cover:this.cover});
     if(!shot)return false;
     const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
+    bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
     bullet.setData('team',shot.team);
     bullet.setData('targetId',shot.targetId);
     bullet.setData('damage',shot.damage);
@@ -220,11 +223,16 @@ class Arena extends Phaser.Scene {
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
       if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
-      if(overlapsCompanion(projectile,victim)){
+      const previous={x:projectile.getData('previousX')??projectile.x,
+        y:projectile.getData('previousY')??projectile.y};
+      if(sweptCompanionHit(previous,{x:projectile.x,y:projectile.y},victim)){
+        const damage=projectile.getData('damage')??12;
         projectile.destroy();
-        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,projectile.getData('damage')??12,this.time.now);
+        const mitigation=interceptDamage(this.companions.units,victim.team,victim.x,damage,this.time.now);
         this.hitCompanion(victim,mitigation.damage);
         if(this.match.phase==='finished')return;
+      }else{
+        projectile.setData('previousX',projectile.x).setData('previousY',projectile.y);
       }
     }
   }

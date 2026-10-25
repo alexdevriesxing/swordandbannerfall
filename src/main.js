@@ -393,20 +393,20 @@ class Arena extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
     const friendlyTargets=[
-      ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,hp:this.director.fighters.hero.hp}]:[]),
-      ...this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).map(u=>({id:u.id,x:u.x,hp:u.hp}))
+      ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,y:p.y,hp:this.director.fighters.hero.hp}]:[]),
+      ...this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).map(u=>({id:u.id,x:u.x,y:u.y,hp:u.hp}))
     ];
     for(const defense of this.enemyDefenses.update(this.tactics,{
       phase:'fight',timeMs:time,opponents:friendlyTargets
     }))this.renderDefense(defense);
     const hostileTargets=[
-      ...(this.director.fighters.enemy.hp>0?[{id:'enemy',x:e.x,hp:this.director.fighters.enemy.hp}]:[]),
-      ...this.companions.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>({id:u.id,x:u.x,hp:u.hp}))
+      ...(this.director.fighters.enemy.hp>0?[{id:'enemy',x:e.x,y:e.y,hp:this.director.fighters.enemy.hp}]:[]),
+      ...this.companions.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>({id:u.id,x:u.x,y:u.y,hp:u.hp}))
     ];
     // Resolve both sides symmetrically. Champions and AI escorts receive the
     // same shield, Sentinel interception, KO and comeback-card logic.
     for(const [team,targets] of [['blue',hostileTargets],['red',friendlyTargets]]){
-      for(const attack of this.tactics.getTargets(team,targets,time)){
+      for(const attack of this.tactics.getTargets(team,targets,time,{cover:this.cover})){
         if(attack.targetId==='enemy')this.hit(e,attack.damage,'ranged');
         else if(attack.targetId==='hero')this.hit(p,attack.damage,'ranged');
         else{

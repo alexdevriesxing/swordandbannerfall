@@ -158,6 +158,8 @@ test('two autonomous 10v10 teams complete a finite seeded match',()=>{
  assert.equal(result.metrics.duplicateKOs,0);
  assert.ok(result.metrics.hits>0);
  assert.ok(result.metrics.shots>0);
+ assert.equal(result.metrics.coverBroken,2,'both authored ground barriers must be breached');
+ assert.ok(result.timeMs<60000,'the seeded game should not stall');
 });
 test('surviving squads continue fighting and finish after blue champion is killed first',()=>{
  const result=simulate({seed:7,blueHeroFalls:true});

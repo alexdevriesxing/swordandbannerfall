@@ -1,4 +1,5 @@
 import { combatElevation } from './elevation.js';
+import { shotObstruction } from './cover.js';
 // Revalidate delayed AI attacks at impact time, not only on windup.
 export function validImpact({attacker,target,range,cover=null}){
  if(!attacker||!target||!(attacker.hp>0)||!(target.hp>0))return false;
@@ -7,7 +8,7 @@ export function validImpact({attacker,target,range,cover=null}){
  if(!(Number.isFinite(range)&&range>0))return false;
  if(Math.abs(attacker.x-target.x)>range)return false;
  if(!combatElevation(attacker,target)[attacker.role==='ranger'?'ranged':'melee'])return false;
- return !(cover&&cover.obstruction(attacker.x,target.x));
+ return !shotObstruction(cover,{x:attacker.x,y:(attacker.y??590)-17},{x:target.x,y:(target.y??590)-17});
 }
 export function resolveTarget(attack,units,champions){
  if(attack.target==='hero')return champions.blue?.hp>0?champions.blue:null;

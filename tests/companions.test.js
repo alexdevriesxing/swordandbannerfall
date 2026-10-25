@@ -24,7 +24,8 @@ test('companions engage when in range and respect cooldown',()=>{
 });
 test('wounded units retreat and do not attack',()=>{
  const c=new CompanionDirector();const u=c.add('blue',930);
- c.command('blue','hunt');c.wound(u.id,45);
+ // A critically wounded Vanguard (15/80 HP) should disengage below 25%.
+ c.command('blue','hunt');c.wound(u.id,65);
  const actions=c.update(1000,500,champions);
  assert.ok(c.units[0].x<930);assert.equal(actions.filter(a=>a.type==='attack').length,0);
 });
@@ -42,4 +43,11 @@ test('surviving blue companions automatically hunt when their champion is defeat
  assert.ok(defeated.units[0].x>350);
  // The explicit command stays unchanged; only the autonomous effective order changes.
  assert.equal(defeated.orders.blue,'guard');
+});
+
+test('moderate injuries do not force a permanent retreat',()=>{
+ const c=new CompanionDirector();const u=c.add('blue',930);
+ c.command('blue','hunt');c.wound(u.id,45); // 35/80 HP remains above the 25% threshold.
+ const actions=c.update(1000,100,champions);
+ assert.equal(actions.filter(a=>a.type==='attack').length,1);
 });

@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {formationGoal,breachCandidate} from '../src/systems/formation.js';
+test('isolated fighter follows its goal',()=>{const u={id:1,x:200,team:'blue',hp:80};assert.equal(formationGoal(u,300,[u]),300);});
+test('crowded teammates receive stable, distinct destinations',()=>{const units=[1,2,3].map(id=>({id,x:300,team:'blue',hp:80}));const goals=units.map(u=>formationGoal(u,300,units));assert.equal(new Set(goals).size,3);assert.deepEqual(goals,units.map(u=>formationGoal(u,300,units)));});
+test('dead enemies are not spacing candidates',()=>{const u={id:1,x:100,team:'blue',hp:50};assert.equal(formationGoal(u,100,[u,{id:2,x:100,team:'red',hp:50},{id:3,x:100,team:'blue',hp:0}]),100);});
+test('breach requires living obstacle within reach',()=>{const u={x:300};assert.equal(breachCandidate(u,{id:'wall',x:400,hp:20},{reach:100}).id,'wall');assert.equal(breachCandidate(u,{x:401,hp:20},{reach:100}),null);assert.equal(breachCandidate(u,{x:350,hp:0}),null);});

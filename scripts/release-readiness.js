@@ -1,5 +1,6 @@
 import {pathToFileURL} from 'node:url';
 import {readFileSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {verifyAssets,REQUIRED_ASSETS} from './verify-assets.js';
 export function releaseReadiness({root=process.cwd()}={}){
@@ -12,7 +13,18 @@ export function releaseReadiness({root=process.cwd()}={}){
    const data=JSON.parse(readFileSync(register,'utf8'));
    for(const filename of REQUIRED_ASSETS){
     const asset=data.assets?.[filename];
-    if(!asset||!['creator','source','license'].every(key=>typeof asset[key]==='string'&&asset[key].trim().length>0)||asset.approved!==true)issues.push('unapproved or undocumented asset: '+filename);
+    if(!asset||!['creator','source','license','rightsBasis','reviewer','reviewedAt'].every(
+      key=>typeof asset[key]==='string'&&asset[key].trim().length>0)
+      ||asset.approved!==true||!/^[a-f0-9]{64}$/.test(asset.sha256??'')
+      ||typeof asset.decision!=='string'||!asset.decision.startsWith('approved-')){
+      issues.push('unapproved or undocumented asset: '+filename);
+      continue;
+    }
+    const actualPath=resolve(root,'public/assets',filename);
+    if(existsSync(actualPath)){
+      const hash=createHash('sha256').update(readFileSync(actualPath)).digest('hex');
+      if(hash!==asset.sha256)issues.push('approved art checksum mismatch: '+filename);
+    }
    }
   }catch{issues.push('invalid asset rights register');}
  }

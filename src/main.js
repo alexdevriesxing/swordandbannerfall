@@ -119,6 +119,9 @@ class Arena extends Phaser.Scene {
     }
     // Both champions and AI companions use swept projectile impacts below.
     // Do not register a second Arcade overlap callback: it could double-award hits.
+    // Authentic Fire Dragon Interactive branding, imported from its pinned studio artwork.
+    this.studioLogo=this.add.image(1210,75,'logo').setDisplaySize(76,114)
+      .setScrollFactor(0).setDepth(100);
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
@@ -280,6 +283,7 @@ class Arena extends Phaser.Scene {
     this.enemy.setVelocity(0,0);
     this.feedback.setText(result.headline);
     this.showState();
+    this.add.image(640,122,'logo').setDisplaySize(80,120).setScrollFactor(0).setDepth(151);
     this.resultScreen=this.add.text(640,328,
       result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+result.instruction,{
       fontFamily:'system-ui',fontSize:'27px',fontStyle:'bold',color:'#ffffff',

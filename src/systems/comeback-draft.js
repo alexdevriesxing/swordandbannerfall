@@ -16,6 +16,8 @@ export class ComebackDraft {
  constructor(){
   this.losses={blue:0,red:0};
   this.claims={blue:0,red:0};
+  this.unlocked={blue:0,red:0};
+  this.queues={blue:[],red:[]};
   this.pending={blue:null,red:null};
   this.effects={blue:DEFAULT(),red:DEFAULT()};
  }
@@ -23,11 +25,14 @@ export class ComebackDraft {
   validateTeam(team);
   if(!Number.isInteger(remaining)||remaining<0||remaining>9)throw new RangeError('Invalid remaining fighters');
   this.losses[team]++;
-  if(ended||remaining===0||this.pending[team]||this.claims[team]>=THRESHOLDS.length
+  if(ended||remaining===0||this.unlocked[team]>=THRESHOLDS.length
    ||!THRESHOLDS.includes(this.losses[team]))return null;
-  const rotation=(this.claims[team]*2+(team==='red'?1:0))%COMEBACK_CARDS.length;
+  const rotation=(this.unlocked[team]*2+(team==='red'?1:0))%COMEBACK_CARDS.length;
   const options=[0,1,2].map(n=>COMEBACK_CARDS[(rotation+n)%COMEBACK_CARDS.length]);
-  this.pending[team]={options:options.map(card=>({...card})),atLoss:this.losses[team]};
+  const offer={options:options.map(card=>({...card})),atLoss:this.losses[team]};
+  this.unlocked[team]++;
+  if(this.pending[team])this.queues[team].push(offer);
+  else this.pending[team]=offer;
   return this.offer(team);
  }
  offer(team){
@@ -47,7 +52,7 @@ export class ComebackDraft {
   if(selected.id==='shieldwall')effect.defense=Math.max(.65,Math.round((effect.defense-.14)*100)/100);
   if(selected.id==='swift-march')effect.speed=Math.min(1.5,Math.round((effect.speed+.18)*100)/100);
   if(selected.id==='deadeye')effect.ranged=Math.min(1.5,Math.round((effect.ranged+.22)*100)/100);
-  this.pending[team]=null;this.claims[team]++;
+  this.pending[team]=this.queues[team].shift()??null;this.claims[team]++;
   return {team,...selected,heal:selected.id==='field-medics'?14:0,
    supply:selected.id==='war-chest'?55:0,effects:{...effect}};
  }
@@ -63,5 +68,5 @@ export class ComebackDraft {
   return value===0?0:Math.max(1,Math.round(value*this.effects[team].defense));
  }
  speed(team){validateTeam(team);return this.effects[team].speed;}
- snapshot(){return JSON.parse(JSON.stringify({losses:this.losses,claims:this.claims,pending:this.pending,effects:this.effects}));}
+ snapshot(){return JSON.parse(JSON.stringify({losses:this.losses,claims:this.claims,unlocked:this.unlocked,queued:{blue:this.queues.blue.length,red:this.queues.red.length},pending:this.pending,effects:this.effects}));}
 }

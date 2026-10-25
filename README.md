@@ -53,3 +53,6 @@ The arena displays a bounded combat event feed for champion damage, fighter elim
 
 ### Readability pass — health labels, hit responses, special windups
 The arena now shows numeric health indicators above active AI companions, fades champion sprites and applies a restrained camera reaction after damage, and announces special ability attacks with a short deferred impact window. Pending special attacks are cancelled when the attacker or intended target is eliminated. These effects use Phaser text and sprite properties rather than procedurally generated character art. The telegraph timing, cancellation, capacity limit and health label formatting are unit-tested. Full battle testing, production textures, animated role effects, sound integration, and accessibility tuning remain outstanding.
+
+### Impact-time reliability pass
+Delayed special attacks now revalidate that the attacker and target are alive, opposing, in range, and unobstructed when damage is due. Stale AI actions from fighters eliminated earlier in the same frame are skipped. Pure-model regression tests cover these cases. Browser smoke tests and full CI verification are still pending; the production artwork contract remains unchanged.

@@ -13,3 +13,17 @@ test('hunter follows connected authored landings without direct player control',
  ai.update(2000,16,champions,null,platforms);
  assert.equal(ai.units.find(x=>x.id===blue.id).platformNode,'middle');
 });
+
+test('flat arena update requires no platform map and never throws',()=>{
+ const ai=new CompanionDirector();ai.add('blue',100);ai.add('red',400);
+ const champions={blue:{team:'blue',x:100,hp:100},red:{team:'red',x:400,hp:100}};
+ assert.doesNotThrow(()=>ai.update(1000,16,champions));
+});
+test('elevated enemy cannot receive impossible ground-level melee hits',()=>{
+ const platforms=new PlatformRoutes([{id:'ground',x:120,y:590},{id:'high',x:130,y:420}],[]);
+ const ai=new CompanionDirector();ai.add('blue',120,{platformNode:'ground'});ai.add('red',130,{platformNode:'high'});
+ const champions={blue:{team:'blue',x:120,hp:0},red:{team:'red',x:130,hp:0}};
+ ai.command('blue','hunt');ai.command('red','hunt');
+ const actions=ai.update(1000,16,champions,null,platforms);
+ assert.equal(actions.filter(a=>a.type==='attack').length,0);
+});

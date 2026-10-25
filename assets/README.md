@@ -14,3 +14,5 @@ The game **must not ship with geometric stand-ins or programmer artwork**. Place
 - defenses/shield.png — finished transparent shield artwork.
 
 The bootstrap deliberately stops and displays an asset-error message if any file is absent. No placeholder assets are committed. All third-party art needs a license record, source, author, and rights confirmation. Visual polish, animation atlases, SFX and effects are not complete until approved assets are integrated.
+
+- arena/destructible-barricade.png — approved transparent barricade sprite used for authored destructible segments.

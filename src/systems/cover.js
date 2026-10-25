@@ -11,7 +11,8 @@ export class BattlefieldCover {
  intact(){return this.segments.filter(s=>s.hp>0);}
  obstruction(from,to){
   const left=Math.min(from,to),right=Math.max(from,to);
-  return this.intact().find(s=>s.x+s.width/2>left&&s.x-s.width/2<right)??null;
+  return this.intact().filter(s=>s.x+s.width/2>left&&s.x-s.width/2<right)
+   .sort((a,b)=>Math.abs(a.x-from)-Math.abs(b.x-from)||a.id.localeCompare(b.id))[0]??null;
  }
  damage(id,amount){
   if(!Number.isFinite(amount)||amount<0)throw new RangeError('Invalid damage');

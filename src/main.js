@@ -1,5 +1,6 @@
 import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
+import {gameAssetUrl} from './systems/asset-paths.js';
 import { TacticalBattle } from './systems/tactics.js';
 import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover, shotObstruction } from './systems/cover.js';
@@ -24,18 +25,18 @@ import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantryS
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
 const ASSETS = {
-  background:'/assets/arena/iron-citadel.webp',
-  ground:'/assets/arena/citadel-ground.webp',
-  knight:'/assets/fighters/knight.png',
-  raider:'/assets/fighters/raider.png',
-  missile:'/assets/fx/projectile.png',
-  slash:'/assets/fx/slash.png',
-  logo:'/assets/branding/fire-dragon-interactive.png',
-  trap:'/assets/defenses/trap.png',
-  turret:'/assets/defenses/turret.png',
-  shield:'/assets/defenses/shield.png',
-  barricade:'/assets/arena/destructible-barricade.png',
-  gantry:'/assets/arena/iron-citadel-gantry.png'
+  background:gameAssetUrl('assets/arena/iron-citadel.webp',import.meta.env.BASE_URL),
+  ground:gameAssetUrl('assets/arena/citadel-ground.webp',import.meta.env.BASE_URL),
+  knight:gameAssetUrl('assets/fighters/knight.png',import.meta.env.BASE_URL),
+  raider:gameAssetUrl('assets/fighters/raider.png',import.meta.env.BASE_URL),
+  missile:gameAssetUrl('assets/fx/projectile.png',import.meta.env.BASE_URL),
+  slash:gameAssetUrl('assets/fx/slash.png',import.meta.env.BASE_URL),
+  logo:gameAssetUrl('assets/branding/fire-dragon-interactive.png',import.meta.env.BASE_URL),
+  trap:gameAssetUrl('assets/defenses/trap.png',import.meta.env.BASE_URL),
+  turret:gameAssetUrl('assets/defenses/turret.png',import.meta.env.BASE_URL),
+  shield:gameAssetUrl('assets/defenses/shield.png',import.meta.env.BASE_URL),
+  barricade:gameAssetUrl('assets/arena/destructible-barricade.png',import.meta.env.BASE_URL),
+  gantry:gameAssetUrl('assets/arena/iron-citadel-gantry.png',import.meta.env.BASE_URL)
 };
 class Boot extends Phaser.Scene {
   constructor(){super('Boot');}

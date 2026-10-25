@@ -65,6 +65,11 @@ class Arena extends Phaser.Scene {
       const sprite=this.platformBodies.create(platform.x,platform.y,'gantry');
       sprite.setDisplaySize(platform.width,platform.height).setDepth(2);
       sprite.refreshBody();
+      // Jump up through the gantry and land on its upper surface only.
+      sprite.body.checkCollision.down=false;
+      sprite.body.checkCollision.left=false;
+      sprite.body.checkCollision.right=false;
+      sprite.body.checkCollision.up=true;
     }
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
@@ -299,7 +304,7 @@ class Arena extends Phaser.Scene {
     }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     if(p.active)p.setVelocityX(x*265);
-    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-505);
+    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-660);
     this.director.setStance('hero',this.keys.L.isDown?'guard':'attack');
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');

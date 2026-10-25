@@ -35,7 +35,7 @@ export class CompanionDirector {
   const applied=Math.min(amount,unit.hp);unit.hp-=applied;
   return {applied,ko:unit.hp===0};
  }
- update(timeMs,deltaMs,champions,cover=null){
+ update(timeMs,deltaMs,champions,cover=null,platforms=null){
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));

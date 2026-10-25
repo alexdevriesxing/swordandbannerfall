@@ -22,6 +22,8 @@ export class PlatformRoutes {
 }
 export function platformJump(unit,from,to,timeMs,{speed=210,minDurationMs=460}={}){
  if(!from||!to||from.id===to.id||timeMs<(unit.nextJumpAt??0))return null;
+ // A jump starts only from the actual authored takeoff landing, never from across the map.
+ if(!Number.isFinite(unit.x)||Math.abs(unit.x-from.x)>36)return null;
  const distance=Math.hypot(to.x-from.x,to.y-from.y);
  if(distance>300||Math.abs(to.y-from.y)>145)return null;
  return {active:true,startX:unit.x,startY:from.y,endX:to.x,endY:to.y,startedAt:timeMs,durationMs:Math.max(minDurationMs,distance/speed*1000),nextJumpAt:timeMs+Math.max(minDurationMs,distance/speed*1000)+900};

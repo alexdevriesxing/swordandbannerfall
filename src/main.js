@@ -163,7 +163,7 @@ class Arena extends Phaser.Scene {
       if(!victim||victim.hp<=0){projectile.destroy();continue;}
       if(victim.team===projectile.getData('team')){projectile.destroy();continue;}
       if(this.cover.obstruction(projectile.x,victim.x)){projectile.destroy();continue;}
-      if(Math.abs(projectile.x-victim.x)<27&&Math.abs(projectile.y-563)<65){
+      if(Math.abs(projectile.x-victim.x)<40&&Math.abs(projectile.y-563)<65){
         projectile.destroy();this.hitCompanion(victim,12);
         if(this.match.phase==='finished')return;
       }

@@ -1,0 +1,13 @@
+{
+  "asset": "public/assets/branding/fire-dragon-interactive.png",
+  "source_public_url": "https://www.firedragoninteractive.com/assets/fire-dragon-logo.png",
+  "source_repository": "alexdevriesxing/Firedragoninteractive",
+  "source_commit": "00d82120238aeef3b65717143ec5da05eb5a524b",
+  "source_path": "assets/fire-dragon-logo.png",
+  "verified_git_blob_sha1": "a1314f79d1f81709f2edcec1dbf619b9c8329ab1",
+  "verified_sha256": "40f2d6a814b7198a3274d513e0f31cd160a2be0a7e32fe2c6a8dc21e59688dd4",
+  "actual_width": 682,
+  "actual_height": 1024,
+  "provenance": "Exact first-party studio image bytes verified and committed by GitHub Actions.",
+  "license_approval": "Requires rights review by project owner; this provenance record is not a license."
+}

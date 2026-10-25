@@ -74,3 +74,6 @@ The normal CI checks code and reports missing art without blocking engineering w
 
 ### Ranged combat projectile pass
 Champion ranged attacks against AI companions now spawn the same licensed projectile texture used for champion shots. Companion damage is applied when the travelling projectile reaches a living, enemy target, rather than immediately at firing time. Projectiles do not damage inactive or friendly targets and are destroyed when their assigned companion target falls or cover blocks their route. This is a first simulation pass and still needs browser collision, performance and gameplay QA with approved art.
+
+### Formation and cover engagement pass
+The companion AI now computes deterministic, role-agnostic positional offsets when many same-team fighters converge on the same one-dimensional lane destination. Hunter orders still advance to barricade standoff and attack blocking destructible cover until a route opens; other orders maintain their defensive behavior. Regression tests cover stable spacing, absence of friendly/enemy confusion, and breach-range eligibility. This is **not** true 2D pathfinding, jumping, lane-switching, or physics-based navigation around an intact wall. Those remain future work, alongside asset-complete browser tests.

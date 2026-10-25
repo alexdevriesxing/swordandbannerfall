@@ -18,3 +18,11 @@ The bootstrap deliberately stops and displays an asset-error message if any file
 - arena/destructible-barricade.png — approved transparent barricade sprite used for authored destructible segments.
 
 - arena/iron-citadel-gantry.png — original licensed painted Iron Citadel elevated gantry art, transparent PNG; the renderer scales it to two authored 240 × 24 scene dimensions and creates an invisible Arcade static body of identical size. Do not stage a placeholder image or mark unapproved art as licensed.
+
+## Verified original studio branding (2026-10-25)
+
+**Imported and committed:** `public/assets/branding/fire-dragon-interactive.png`, the exact 682 × 1024 source PNG from `www.firedragoninteractive.com/assets/fire-dragon-logo.png`. Its SHA-1 Git blob identity was cryptographically checked against the original file in `alexdevriesxing/Firedragoninteractive` at commit `00d82120238aeef3b65717143ec5da05eb5a524b`. Source URL, SHA-256 and original dimensions are in `assets/branding-provenance.json`.
+
+The finished logo appears in the Iron Citadel HUD and victory presentation. The importer is reproducible with `npm run assets:import-branding` and refuses a different or corrupted image. This provenance record is not a licence grant; the project owner must confirm branding and other art usage rights in `assets/licenses.json`.
+
+**Still outstanding:** the other 11 required scene, character, effects and defense textures. Do not borrow assets from unrelated games or create placeholder polygons to pass a gate. `npm run check:assets` now verifies complete PNG chunk structure and CRC, WebP container metadata and image dimensions before accepting deliveries; artistic quality, transparent edges, coherent sprite proportions and licensing still require manual sign-off.

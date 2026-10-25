@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --test",
-    "check:assets": "node scripts/verify-assets.js"
+    "check:assets": "node scripts/verify-assets.js",
+    "check:release": "node scripts/release-readiness.js"
   },
   "dependencies": {
     "phaser": "4.2.1"

@@ -65,3 +65,6 @@ The repository includes `tests/match-lifecycle.test.js`, covering a complete 10v
 
 ### Production release gates
 Run `npm test` and `npm run build` for code verification, then `npm run check:assets` to check all eleven required PNG/WebP assets exist and have correct file signatures. GitHub Actions reports the asset gate as an informational step until final licensed artwork is staged; a green code build **does not** mean the game is ready to ship. The asset gate verifies file signatures only, not art quality, animation completeness, or licensing. A written source/author/rights register and actual browser playtesting remain mandatory before any Windows installer or paid HTML5 release. Phaser 4.2.1 is an official npm version.
+
+### Projectile reliability correction
+Phaser overlap callback now treats the projectile as the first colliding object and the champion as the second. A separately tested pure guard rejects friendly fire, inactive objects, and missing team metadata. The corrected code is committed, but a browser verification and CI test result have not yet been obtained.

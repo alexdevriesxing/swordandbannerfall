@@ -44,14 +44,18 @@ class Arena extends Phaser.Scene {
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.preparation=new PreparationPhase({durationMs:12000});
-    this.companions=new CompanionDirector({maxPerTeam:4});this.companionSprites=new Map();
+    this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
-    for(const [team,x,texture,role] of [['blue',120,'knight','sentinel'],['blue',155,'knight','ranger'],['blue',190,'knight','vanguard'],['blue',225,'knight','ranger'],['red',1055,'raider','sentinel'],['red',1090,'raider','ranger'],['red',1125,'raider','vanguard'],['red',1160,'raider','ranger']]){
+    const formations=[
+      ...Array.from({length:9},(_,i)=>['blue',70+i*31,'knight',['sentinel','ranger','vanguard'][i%3]]),
+      ...Array.from({length:9},(_,i)=>['red',1210-i*31,'raider',['sentinel','ranger','vanguard'][i%3]])
+    ];
+    for(const [team,x,texture,role] of formations){
       const unit=this.companions.add(team,x,{role});
       if(unit){const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);}
     }
@@ -144,7 +148,7 @@ class Arena extends Phaser.Scene {
   showState(){
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
-    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nRESERVES '+tactics.remaining.blue+' : '+tactics.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nStance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    DUEL '+state.round+'/10\nBLUE '+state.score.blue+'  |  RED '+state.score.red+'     HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nRESERVES '+tactics.remaining.blue+' : '+tactics.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     if(this.director.phase==='cards'){

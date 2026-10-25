@@ -139,7 +139,7 @@ class Arena extends Phaser.Scene {
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
-    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP +state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+'\nAI ACTIVE '+this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).length+' : '+this.companions.units.filter(u=>u.team==='red'&&u.hp>0).length+'    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     if(this.match.phase==='finished')return;

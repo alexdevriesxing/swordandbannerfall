@@ -18,3 +18,12 @@ test('invalid damage cannot repair or destroy cover',()=>{
  assert.throws(()=>c.damage('wall',-1));
  assert.deepEqual(c.damage('missing',10),{applied:0,destroyed:false});
 });
+
+test('first barricade encountered along the travel direction takes damage first',()=>{
+ const c=new BattlefieldCover();
+ assert.equal(c.obstruction(900,200).id,'east-bulkhead');
+ assert.equal(c.obstruction(200,900).id,'central-barricade');
+ const first=c.obstruction(900,200);
+ c.damage(first.id,first.hp);
+ assert.equal(c.obstruction(900,200).id,'central-barricade');
+});

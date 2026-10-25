@@ -1,0 +1,44 @@
+name: Windows NSIS installer — licensed art required
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned game and Electron dependencies
+        run: npm install --no-audit --no-fund
+      - name: Hard stop if any original art or licensing approval is absent
+        run: npm run check:release
+      - name: Full game logic tests
+        run: npm test
+      - name: Bundle offline Phaser game
+        run: npm run build
+      - name: Create genuine Fire Dragon Windows icon
+        run: |
+          python -m pip install Pillow==11.3.0
+          python scripts/build-windows-icon.py
+      - name: Produce one-click Windows x64 NSIS installer (QA artifact only)
+        run: npx electron-builder --win nsis --x64 --publish never
+        env:
+          CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      - name: Preserve installer for private acceptance testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sword-Bannerfall-Windows-QA-Installer
+          path: release/windows/*.exe
+          if-no-files-found: error
+          retention-days: 14
+# No GitHub Release, Snack Break Games listing, Creem purchase link or
+# code-signing claim is produced. Commercial release requires signed setup,
+# asset review, browser playthrough, human Windows install/uninstall QA.

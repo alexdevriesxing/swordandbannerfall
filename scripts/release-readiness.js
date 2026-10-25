@@ -1,3 +1,4 @@
+import {pathToFileURL} from 'node:url';
 import {readFileSync,existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {verifyAssets,REQUIRED_ASSETS} from './verify-assets.js';
@@ -17,7 +18,7 @@ export function releaseReadiness({root=process.cwd()}={}){
  }
  return {ready:issues.length===0,issues};
 }
-if(process.argv[1]&&import.meta.url===new URL('file://'+resolve(process.argv[1])).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const state=releaseReadiness();
  if(!state.ready){console.error('RELEASE BLOCKED\n'+state.issues.join('\n'));process.exitCode=1;}
  else console.log('File and rights gates passed. Manual browser playthrough still required.');

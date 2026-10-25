@@ -177,6 +177,7 @@ class Arena extends Phaser.Scene {
     },this.cover);
     for(const action of aiActions){
       if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual)visual.x=action.x;}
+      if(action.type==='cover-attack')this.damageCover(action.coverId,action.damage);
       if(action.type==='attack'){
         const attacker=this.companions.units.find(u=>u.id===action.id);
         if(action.targetId==='champion'){

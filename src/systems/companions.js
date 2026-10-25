@@ -1,3 +1,4 @@
+import { specialAttack } from './abilities.js';
 import { SquadCoordinator } from './squad.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
@@ -83,7 +84,8 @@ export class CompanionDirector {
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
    }else if(!blockedShot&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
-    actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage});
+    const special=specialAttack(unit,timeMs);
+    actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage+(special?.bonusDamage??0),ability:special?.ability??null});
    }
   }
   return actions;

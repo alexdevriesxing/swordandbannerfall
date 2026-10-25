@@ -53,14 +53,14 @@ export class CompanionDirector {
   for(const team of ['blue','red']){
    const enemyTeam=team==='blue'?'red':'blue';
    const enemyChampion=champions[enemyTeam];
-   const foes=[...(enemyChampion?.hp>0?[{id:'champion',x:enemyChampion.x,hp:enemyChampion.hp}]:[]),...snapshot.filter(u=>u.team===enemyTeam)];
+   const foes=[...(enemyChampion?.hp>0?[{id:'champion',team:enemyTeam,x:enemyChampion.x,y:enemyChampion.y??GROUND_Y,platformNode:enemyChampion.platformNode??null,hp:enemyChampion.hp}]:[]),...snapshot.filter(u=>u.team===enemyTeam)];
    teamFocus[team]=this.coordinator.focus(team,snapshot,foes,timeMs,battleOrder(team),champions[team]?.x??(team==='blue'?100:1180));
   }
   for(const unit of this.units){
    if(unit.hp<=0)continue;
    const champion=champions[unit.team],enemy=champions[unit.team==='blue'?'red':'blue'];
    const foes=[
-    ...(enemy&&enemy.hp>0?[{id:'champion',team:enemy.team,x:enemy.x,hp:enemy.hp}]:[]),
+    ...(enemy&&enemy.hp>0?[{id:'champion',team:enemy.team,x:enemy.x,y:enemy.y??GROUND_Y,platformNode:enemy.platformNode??null,hp:enemy.hp}]:[]),
     ...snapshot.filter(u=>u.team!==unit.team)
    ];
    // Prioritize immediate threats to our champion; ranged units favor fragile enemy companions.

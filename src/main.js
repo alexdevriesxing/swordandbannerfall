@@ -73,13 +73,21 @@ class Arena extends Phaser.Scene {
       sprite.body.checkCollision.right=false;
       sprite.body.checkCollision.up=true;
     }
-    for(const segment of this.cover.snapshot())this.coverSprites.set(segment.id,this.add.image(segment.x,580,'barricade').setDisplaySize(segment.width,125).setDepth(2));
+    this.coverBodies=this.physics.add.staticGroup();
+    for(const segment of this.cover.snapshot()){
+      const barricade=this.coverBodies.create(segment.x,580,'barricade');
+      barricade.setDisplaySize(segment.width,125).setDepth(2);
+      barricade.refreshBody();
+      this.coverSprites.set(segment.id,barricade);
+    }
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.match.register('blue','hero');this.match.register('red','enemy');
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
     this.physics.add.collider(this.player,this.platformBodies);
+    this.physics.add.collider(this.player,this.coverBodies);
+    this.physics.add.collider(this.enemy,this.coverBodies);
     this.enemyDropUntil=0;
     this.nextEnemyTraversalAt=0;
     this.physics.add.collider(this.enemy,this.platformBodies,undefined,()=>this.time.now>=this.enemyDropUntil,this);

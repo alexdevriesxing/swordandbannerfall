@@ -570,6 +570,9 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      },
      companions:scene.companions.units.filter(u=>u.hp>0).length,
      projectiles:scene.bullets?.countActive()??0,
+     // Read-only acceptance diagnostics for real keyboard commands and stance.
+     orders:scene.tactics?{...scene.tactics.orders}:null,
+     stance:scene.director?.fighters?.hero?.stance??null,
      comeback:scene.comeback?.snapshot()??null,
      defenses:scene.tactics?.defenses.map(d=>({id:d.id,team:d.team,kind:d.kind,x:d.x,hp:d.hp}))??[],
      supply:scene.tactics?{...scene.tactics.supply}:null,

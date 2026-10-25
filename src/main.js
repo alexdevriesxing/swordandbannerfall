@@ -18,6 +18,7 @@ import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
+import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces } from './levels/arena-physics.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -53,8 +54,11 @@ class Arena extends Phaser.Scene {
   constructor(){super('Arena');}
   create(){
     this.add.image(640,360,'background').setDisplaySize(1280,720);
-    this.add.image(640,661,'ground').setDisplaySize(1280,120);
-    this.physics.world.setBounds(0,0,1280,660);
+    // Ground collider is derived from the same mandatory authored texture as the visual floor.
+    this.groundBody=this.physics.add.staticImage(640,GROUND_ART_CENTER_Y,'ground')
+      .setDisplaySize(1280,GROUND_ART_HEIGHT).setDepth(1);
+    this.groundBody.refreshBody();
+    this.physics.world.setBounds(0,0,1280,720);
     this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
@@ -64,6 +68,7 @@ class Arena extends Phaser.Scene {
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.cover=new BattlefieldCover();this.coverSprites=new Map();
     validateIronCitadel();
+    validateGantrySurfaces(IRON_CITADEL_GANTRIES);
     this.platforms=new PlatformRoutes(IRON_CITADEL_NODES,IRON_CITADEL_LINKS);
     this.platformBodies=this.physics.add.staticGroup();
     for(const platform of IRON_CITADEL_GANTRIES){
@@ -88,7 +93,10 @@ class Arena extends Phaser.Scene {
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.match.register('blue','hero');this.match.register('red','enemy');
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
-    this.physics.add.collider(this.player,this.platformBodies);
+    this.playerDropUntil=0;
+    this.physics.add.collider(this.player,this.groundBody);
+    this.physics.add.collider(this.enemy,this.groundBody);
+    this.physics.add.collider(this.player,this.platformBodies,undefined,()=>this.time.now>=this.playerDropUntil,this);
     this.physics.add.collider(this.player,this.coverBodies);
     this.physics.add.collider(this.enemy,this.coverBodies);
     this.enemyDropUntil=0;
@@ -122,13 +130,14 @@ class Arena extends Phaser.Scene {
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.endShown=false;
-    this.feedback.setText('PREPARE DEFENSES: F trap / G turret / H shield — ENTER to battle');
+    this.feedback.setText('PREPARE: F trap / G turret / H shield — ENTER to battle');
     this.showState();
   }
   makeFighter(id,texture,x){
     const sprite=this.physics.add.sprite(x,580,texture).setDisplaySize(72,100);
     sprite.setData('id',id).setData('team',id==='hero'?'blue':'red');
-    sprite.body.setSize(sprite.displayWidth*.65,sprite.displayHeight*.86,true);
+    const collision=championHitbox(sprite.width,sprite.height);
+    sprite.body.setSize(collision.width,collision.height,true);
     sprite.body.setCollideWorldBounds(true);
     sprite.body.setGravityY(850);sprite.setDepth(4);
     this.teamSprites.set(id,sprite);return sprite;
@@ -379,7 +388,12 @@ class Arena extends Phaser.Scene {
     }
     const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
     if(p.active)p.setVelocityX(x*265);
-    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.SPACE)&&p.body.blocked.down)p.setVelocityY(-660);
+    if(p.active&&p.body.blocked.down&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||Phaser.Input.Keyboard.JustDown(this.keys.W)))p.setVelocityY(-660);
+    if(p.active&&p.body.blocked.down&&Phaser.Input.Keyboard.JustDown(this.keys.S)){
+      // S drops through one-way gantries but cannot fall through the solid ground.
+      this.playerDropUntil=time+700;
+      p.setVelocityY(175);
+    }
     this.director.setStance('hero',this.keys.L.isDown?'guard':'attack');
     if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');

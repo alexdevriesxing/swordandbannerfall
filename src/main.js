@@ -45,8 +45,8 @@ class Arena extends Phaser.Scene {
     this.player=this.makeFighter('hero','knight',220);
     this.enemy=this.makeFighter('enemy','raider',1030);
     this.player.body.setCollideWorldBounds(true);this.enemy.body.setCollideWorldBounds(true);
-    for(const [team,x,texture] of [['blue',150,'knight'],['blue',185,'knight'],['red',1090,'raider'],['red',1125,'raider']]){
-      const unit=this.companions.add(team,x);
+    for(const [team,x,texture,role] of [['blue',150,'knight','sentinel'],['blue',185,'knight','ranger'],['red',1090,'raider','vanguard'],['red',1125,'raider','ranger']]){
+      const unit=this.companions.add(team,x,{role});
       if(unit){const visual=this.add.image(x,590,texture).setDisplaySize(45,65).setDepth(3).setAlpha(.9);this.companionSprites.set(unit.id,visual);}
     }
     this.physics.add.overlap(this.bullets,[this.player,this.enemy],(target,projectile)=>{

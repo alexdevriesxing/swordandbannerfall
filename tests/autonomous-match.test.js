@@ -55,7 +55,7 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
   const victim=liveTarget(targetId);
   if(!victim)return;
   const blocked=tactics.incomingDamage(victim.team,amount,victim.x);
-  const protectedHit=interceptDamage(ai.units,victim.team,victim.x,blocked.remaining,time);
+  const protectedHit=interceptDamage(ai.units,victim.team,victim.x,blocked.remaining,time,victim.y??590);
   if(targetId==='hero'||targetId==='enemy'){
    const result=combat.damage(targetId,protectedHit.damage,type);
    champions[victim.team].hp=combat.fighters[targetId].hp;

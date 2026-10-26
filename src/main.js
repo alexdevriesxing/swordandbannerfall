@@ -18,6 +18,7 @@ import { firstBattleProjectileContact } from './systems/battle-projectiles.js';
 import { planChampionShot } from './systems/champion-projectiles.js';
 import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot, planCompanionCoverShot } from './systems/companion-projectiles.js';
+import { planTurretShot } from './systems/turret-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
@@ -317,6 +318,21 @@ class Arena extends Phaser.Scene {
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(planned.velocity.x,planned.velocity.y);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+  }
+  fireTurret(defense,target,damage){
+    const shot=planTurretShot({defense,target,damage,cover:this.cover});
+    if(!shot)return false;
+    const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
+    bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
+    bullet.setData('team',shot.team);
+    bullet.setData('source','turret');
+    bullet.setData('targetId',shot.targetId);
+    bullet.setData('damage',shot.damage);
+    bullet.setData('coverDamage',shot.coverDamage);
+    bullet.body.setAllowGravity(false);
+    bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+    return true;
   }
   fireCompanion(attacker,target,damage){
     const shot=planCompanionShot({attacker,target,damage,cover:this.cover});
@@ -659,6 +675,12 @@ class Arena extends Phaser.Scene {
     // same shield, Sentinel interception, KO and comeback-card logic.
     for(const [team,targets] of [['blue',hostileTargets],['red',friendlyTargets]]){
       for(const attack of this.tactics.getTargets(team,targets,time,{cover:this.cover})){
+        if(attack.kind==='turret'){
+          const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId&&d.hp>0);
+          const target=targets.find(t=>t.id===attack.targetId&&t.hp>0);
+          if(defense&&target)this.fireTurret(defense,{...target,team:attack.targetTeam},attack.damage);
+          continue;
+        }
         if(attack.targetId==='enemy')this.hit(e,attack.damage,'ranged');
         else if(attack.targetId==='hero')this.hit(p,attack.damage,'ranged');
         else{

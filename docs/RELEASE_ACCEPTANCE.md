@@ -76,3 +76,15 @@ Only then configure the $1.99 Creem checkout and Windows download on [snackbreak
 The repository contains a full-match headless 10v10 smoke harness, deterministic seed coverage, role-AI movement, barricade physics, projectile interception, comeback drafts, control-mode selection, match victory and replay. The first-hostile / first-cover projectile resolver lives in `src/systems/battle-projectiles.js`; the actual Phaser scene uses it in `src/main.js`. The Chromium scripts additionally require visible champion projectile flight in both control modes.
 
 **Remaining hard blockers:** import the 17 original art files; actual browser and Windows QA; final authored character animation and production music/SFX; store checkout and installer delivery verification. Do not publish before they are resolved.
+
+## 8. Combat integrity changes — 26 October 2026
+
+These changes are wired into the live Phaser scene and have deterministic source-level regression coverage:
+
+- **Ranger barricade breaches:** a Ranger now launches the approved travelling missile toward physical cover. Barricade HP is reduced only after swept collision detects the impact. Vanguard and Sentinel remain close-combat breachers. The 10v10 headless match simulation follows the same rule.
+- **Sentinel interception by elevation:** a Sentinel on a raised gantry cannot reduce ground-unit damage, or vice versa, when separated beyond the authored 65-pixel melee vertical reach. Existing shield absorption and Sentinel cooldown rules remain intact.
+- **Defensive turret projectiles:** offensive turret shots now launch the same approved missile sprite rather than directly subtracting fighter HP on selection. A nearer hostile fighter or solid barricade intercepts the travelling projectile. Trap deployment remains an immediate-contact defense.
+- **Same damage ownership:** champion, companion and turret bullets all resolve through the first-contact battlefield resolver, then the established shield/Sentinel/comeback/KO pipeline.
+- **No new substitute textures:** all changes rely exclusively on existing approved projectile/defense texture paths. The 17-image checksum gate remains mandatory.
+
+**Verification caveat:** Source-level Node tests, headless seeded matches and JavaScript Vite builds do not prove that the real browser's Arcade physics, textures, sprite proportions, animated combat and frame timing are commercially acceptable. Re-run the strict full Chromium workflows after importing the actual artwork; review screenshots and at least one human-played Windows match.

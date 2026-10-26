@@ -11,6 +11,8 @@ export function specialAttack(unit,timeMs){
  return {ability:spec.id,bonusDamage:spec.bonusDamage};
 }
 export function interceptDamage(units,team,targetX,damage,timeMs){
+ if(!Number.isFinite(damage)||damage<0)throw new RangeError('Invalid interception damage');
+ if(damage===0)return {damage:0,intercepted:false};
  const guard=units.find(u=>u.team===team&&u.role==='sentinel'&&u.hp>0&&Math.abs(u.x-targetX)<=110&&timeMs-(u.lastIntercept??-Infinity)>=ABILITIES.sentinel.cooldownMs);
  if(!guard)return {damage,intercepted:false};
  guard.lastIntercept=timeMs;

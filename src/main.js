@@ -4,7 +4,7 @@ import {gameAssetUrl} from './systems/asset-paths.js';
 import { TacticalBattle } from './systems/tactics.js';
 import { refundSetupDefenses } from './systems/preparation-economy.js';
 import { CompanionDirector } from './systems/companions.js';
-import { BattlefieldCover, shotObstruction } from './systems/cover.js';
+import { BattlefieldCover } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
 import { protectedCompanionDamage } from './systems/companion-damage.js';
@@ -15,7 +15,7 @@ import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { resolveProjectileTarget } from './systems/projectile-targets.js';
-import { aimVelocity } from './systems/ballistics.js';
+import { planChampionShot } from './systems/champion-projectiles.js';
 import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
@@ -299,22 +299,22 @@ class Arena extends Phaser.Scene {
     }
   }
   fire(source,target){
+    // A projectile is responsible for actual damage: pressing the fire key
+    // must never directly damage a barricade behind the visual effect.
     const nearest=this.championTarget(source,650,'ranged',true);
-    // A nearby barricade can be breached even when opponents are beyond shot range.
-    const aimX=nearest?.x??target.x;
-    const obstruction=shotObstruction(this.cover,{x:source.x,y:source.y-17},{x:aimX,y:(nearest?.y??target?.y??590)-17});
-    if(obstruction&&Math.abs(source.x-obstruction.x)<650){this.damageCover(obstruction.id,18);return;}
-    if(!nearest)return;
-    const dir=Math.sign(nearest.x-source.x)||1;
-    const originX=source.x+dir*43,originY=source.y-17;
-    const bullet=this.bullets.create(originX,originY,'missile').setScale(.6);
-    bullet.setData('previousX',originX).setData('previousY',originY);
-    bullet.setData('team',source.getData('team'));
-    bullet.setData('targetId',nearest.id);
-    bullet.setData('damage',12);
+    const planned=planChampionShot({
+      attacker:{team:source.getData('team'),x:source.x,y:source.y},
+      target:nearest,lookToward:target,cover:this.cover
+    });
+    if(!planned)return;
+    const bullet=this.bullets.create(planned.origin.x,planned.origin.y,'missile').setScale(.6);
+    bullet.setData('previousX',planned.origin.x).setData('previousY',planned.origin.y);
+    bullet.setData('team',planned.team);
+    bullet.setData('targetId',planned.targetId);
+    bullet.setData('damage',planned.damage);
+    bullet.setData('coverDamage',planned.coverDamage);
     bullet.body.setAllowGravity(false);
-    const velocity=aimVelocity({x:originX,y:originY},{x:nearest.x,y:(nearest.y??590)-17});
-    bullet.setVelocity(velocity.x,velocity.y);
+    bullet.setVelocity(planned.velocity.x,planned.velocity.y);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
   fireCompanion(attacker,target,damage){
@@ -339,18 +339,18 @@ class Arena extends Phaser.Scene {
       if(!projectile.active)continue;
       const id=projectile.getData('targetId');
       const victim=resolveProjectileTarget(id,projectile.getData('team'),champions,this.companions.units);
-      if(!victim){projectile.destroy();continue;}
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
       const contact=sweptProjectileContact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
       if(contact?.kind==='cover'){
-        // A real travelling bullet must weaken the FIRST barricade it hits.
-        // Read damage before destroying the Arcade sprite/data manager.
-        const damage=projectile.getData('damage')??12;
+        // Projectiles can hit solid cover even after their target has fallen.
+        // Capture attack metadata before destroying the Phaser data manager.
+        const damage=projectile.getData('coverDamage')??projectile.getData('damage')??12;
         projectile.destroy();
         this.damageCover(contact.id,damage);
         continue;
       }
+      if(!victim){projectile.destroy();continue;}
       if(contact?.kind==='unit'){
         // Destroying Phaser game objects may also release their data manager.
         // Capture the damage before destruction; apply the hit exactly once.

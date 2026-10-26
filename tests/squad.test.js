@@ -35,3 +35,19 @@ test('guard holds its existing focus when no new immediate threat appears',()=>{
  assert.equal(s.focus('blue',defenders,[first],100,'guard',100).id,'first');
  assert.equal(s.focus('blue',defenders,[{...first,x:900},{id:'other',x:700,hp:100}],150,'guard',100).id,'first');
 });
+
+test('changing from guard to hunt immediately recalculates shared target',()=>{
+ const s=new SquadCoordinator({rethinkMs:1200});
+ const own=[{team:'blue',x:550,hp:80}];
+ const near={id:'near',x:120,hp:100},far={id:'far',x:530,hp:100};
+ assert.equal(s.focus('blue',own,[near,far],100,'guard',100).id,'near');
+ assert.equal(s.focus('blue',own,[near,far],110,'hunt',100).id,'far');
+});
+test('eliminated foes cannot remain squad focus during the rethink interval',()=>{
+ const s=new SquadCoordinator({rethinkMs:1200});
+ const own=[{team:'blue',x:500,hp:80}];
+ const first={id:'first',x:510,hp:100},second={id:'second',x:700,hp:100};
+ assert.equal(s.focus('blue',own,[first,second],100,'hunt',100).id,'first');
+ assert.equal(s.focus('blue',own,[{...first,hp:0},second],110,'hunt',100).id,'second');
+ assert.equal(s.focus('blue',own,[{...first,hp:0}],120,'hunt',100),null);
+});

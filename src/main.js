@@ -6,7 +6,6 @@ import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover, shotObstruction } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
 import { EliminationMatch } from './systems/elimination.js';
-import { interceptDamage } from './systems/abilities.js';
 import { protectedCompanionDamage } from './systems/companion-damage.js';
 import { ComebackDraft } from './systems/comeback-draft.js';
 import { EnemyDefenseDirector } from './systems/enemy-defenses.js';
@@ -204,9 +203,11 @@ class Arena extends Phaser.Scene {
     const team=sprite.getData('team');
     const opponent=team==='blue'?'red':'blue';
     const boosted=this.comeback.damage(opponent,damage,type);
-    const protectedHit=this.tactics.incomingDamage(team,this.comeback.incoming(team,boosted),sprite.x);
-    const intercepted=interceptDamage(this.companions.units,team,sprite.x,protectedHit.remaining,this.time.now);
-    const result=this.director.damage(id,intercepted.damage,type);
+    // Champions and escorts must share exactly the same shield and Sentinel
+    // interception rules. A fully absorbed hit consumes neither cooldown.
+    const protection=protectedCompanionDamage(this.tactics,this.companions.units,
+      {team,x:sprite.x},this.comeback.incoming(team,boosted),this.time.now);
+    const result=this.director.damage(id,protection.damage,type);
     if(result.applied>0){this.cameras.main.shake(65,.0011);this.tweens.add({targets:sprite,alpha:.5,duration:70,yoyo:true});}
     if(result.applied>0){this.pacing.impact(this.time.now);this.feed.push(this.time.now,(team==='blue'?'ALLY':'ENEMY')+' champion -'+result.applied+' HP','hit');}
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));

@@ -21,6 +21,7 @@ export class CompanionDirector {
   if(!Object.hasOwn(ROLES,role))throw new Error('Invalid companion role');
   const spec=ROLES[role];hp??=spec.hp;damage??=spec.damage;speed??=spec.speed;
   if(!['blue','red'].includes(team)||!Number.isFinite(x))throw new Error('Invalid companion');
+  if(![hp,damage,speed].every(v=>Number.isFinite(v)&&v>0))throw new RangeError('Companion stats must be positive and finite');
   if(this.units.filter(u=>u.team===team&&u.hp>0).length>=this.maxPerTeam)return null;
   const unit={id:this.nextId++,team,x,anchor:x,hp,maxHp:hp,damage,speed,role,range:spec.range,platformNode,y:GROUND_Y,lastAttack:-Infinity};
   this.units.push(unit);return {...unit};
@@ -47,6 +48,9 @@ export class CompanionDirector {
    }
   }
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
+  // Only the surviving roster can participate in target selection. Keep
+  // references to real entities rather than retaining a dead squadmate's
+  // position from a previous coordination tick.
   // Any defensive posture becomes Hunt after the champion falls; the last
   // surviving escort must fight even with critically low health.
   const battleOrder=team=>champions[team]?.hp<=0?'hunt':this.orders[team];

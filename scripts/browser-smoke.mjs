@@ -13,7 +13,18 @@ mkdirSync('artifacts',{recursive:true});
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:1280,height:720}});
 const runtimeErrors=[];
+const assetFailures=[];
 page.on('pageerror',error=>runtimeErrors.push(error.message));
+page.on('response',response=>{
+ const pathname=new URL(response.url()).pathname;
+ if(pathname.startsWith('/assets/')&&!response.ok())
+  assetFailures.push(pathname+' (HTTP '+response.status()+')');
+});
+page.on('requestfailed',request=>{
+ const pathname=new URL(request.url()).pathname;
+ if(pathname.startsWith('/assets/'))
+  assetFailures.push(pathname+' ('+(request.failure()?.errorText??'network failure')+')');
+});
 async function snapshot(){
  return page.evaluate(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()??null);
 }
@@ -179,6 +190,7 @@ try{
  assert.ok(secondJump.fighters.blue.y<secondStart.fighters.blue.y-10,
   'Arcade physics remained paused after a full match replay');
 
+ assert.deepEqual(assetFailures,[],'Production textures failed to load: '+assetFailures.join(', '));
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
   'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
@@ -189,6 +201,7 @@ try{
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);
  console.error('Phaser page errors:',runtimeErrors);
+ console.error('Production texture failures:',assetFailures);
  process.exitCode=1;
 }finally{
  await browser.close();

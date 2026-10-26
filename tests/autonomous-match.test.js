@@ -10,7 +10,7 @@ import {AttackTelegraphs} from '../src/systems/telegraphs.js';
 import {validImpact} from '../src/systems/impact.js';
 import {nearestOpponent} from '../src/systems/targeting.js';
 import {planCompanionShot} from '../src/systems/companion-projectiles.js';
-import {sweptProjectileImpact} from '../src/systems/projectile-impact.js';
+import {firstBattleProjectileContact} from '../src/systems/battle-projectiles.js';
 import {interceptDamage} from '../src/systems/abilities.js';
 
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
@@ -83,7 +83,8 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
   const shot=planCompanionShot({attacker,target,damage,cover});
   if(!shot)return;
   shots.push({createdAt:time,x:shot.origin.x,y:shot.origin.y,
-   velocity:shot.velocity,attacker:attacker.id,targetId:target.id,damage});
+   velocity:shot.velocity,team:attacker.team,
+   attacker:attacker.id,targetId:target.id,damage});
   metrics.shots++;
  }
  if(blueHeroFalls)hit('hero',1000,'ranged',0);
@@ -113,14 +114,22 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
   }
   for(let i=shots.length-1;i>=0;i--){
    const shot=shots[i];
-   const target=liveTarget(shot.targetId);
-   if(!target||time-shot.createdAt>1900){shots.splice(i,1);continue;}
+   if(time-shot.createdAt>1900){shots.splice(i,1);continue;}
    const previous={x:shot.x,y:shot.y};
    shot.x+=shot.velocity.x*stepMs/1000;
    shot.y+=shot.velocity.y*stepMs/1000;
-   const impact=sweptProjectileImpact(previous,{x:shot.x,y:shot.y},target,cover);
-   if(impact==='cover'){shots.splice(i,1);continue;}
-   if(impact==='unit'){shots.splice(i,1);hit(shot.targetId,shot.damage,'ranged',time);}
+   // The headless model uses the exact first-impact rules as the Phaser
+   // scene: an intervening fighter intercepts, or the nearer cover absorbs.
+   const impact=firstBattleProjectileContact(previous,{x:shot.x,y:shot.y},{
+    firingTeam:shot.team,champions,companions:ai.units,cover
+   });
+   if(impact?.kind==='cover'){
+    shots.splice(i,1);
+    breach(impact.id,shot.damage);
+   }else if(impact?.kind==='unit'){
+    shots.splice(i,1);
+    hit(impact.id,shot.damage,'ranged',time);
+   }
   }
   if(match.phase!=='fight')break;
   for(const attack of tactics.getTargets('blue',[

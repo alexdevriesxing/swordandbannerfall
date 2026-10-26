@@ -388,6 +388,7 @@ class Arena extends Phaser.Scene {
     this.feedback.setText(result.headline);
     this.showState();
     this.add.image(640,122,'logo').setDisplaySize(80,120).setScrollFactor(0).setDepth(151);
+    if(this.demo){this.physics.world.pause();this.showDemoStoreLink();}
     this.resultScreen=this.add.text(640,328,
       result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+
       (this.demo?'DEMO COMPLETE — FULL WINDOWS GAME AT SNACKBREAKGAMES.COM':result.instruction),{
@@ -395,6 +396,16 @@ class Arena extends Phaser.Scene {
       align:'center',backgroundColor:'#101722ef',padding:{x:45,y:35},
       lineSpacing:12
     }).setOrigin(.5).setScrollFactor(0).setDepth(150);
+  }
+  showDemoStoreLink(){
+    if(!this.demo||this.storeLink)return;
+    this.storeLink=this.add.text(640,570,'VISIT SNACKBREAKGAMES.COM — FULL WINDOWS EDITION',{
+      fontFamily:'system-ui',fontSize:'21px',fontStyle:'bold',color:'#ffdc87',
+      backgroundColor:'#101722ef',padding:{x:23,y:13}
+    }).setOrigin(.5).setScrollFactor(0).setDepth(155).setInteractive({useHandCursor:true});
+    this.storeLink.on('pointerdown',()=>{
+      window.open('https://www.snackbreakgames.com/','_blank','noopener,noreferrer');
+    });
   }
   finishDemo(){
     if(!this.demo?.ended||this.endShown)return;
@@ -406,6 +417,7 @@ class Arena extends Phaser.Scene {
     this.cardPrompt?.setVisible(false);
     for(const slot of this.cardArtwork??[]){slot.image.setVisible(false);slot.label.setVisible(false);}
     this.feedback.setText('HTML5 DEMO COMPLETE');
+    this.showDemoStoreLink();
     this.resultScreen=this.add.text(640,340,
       'SWORD & BANNERFALL — DEMO COMPLETE\n\n'+
       'ONE-MATCH PREVIEW / FOUR MINUTES OF COMBAT\n\n'+

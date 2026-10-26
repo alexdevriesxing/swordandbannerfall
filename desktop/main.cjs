@@ -11,7 +11,7 @@ const trustedURL=pathToFileURL(gameIndex).href;
 
 app.whenReady().then(()=>{
  session.defaultSession.webRequest.onBeforeRequest((request,callback)=>{
-  callback({cancel:!isOfflineAssetRequest(request.url)});
+  callback({cancel:!isOfflineAssetRequest(request.url,trustedURL)});
  });
  const window=new BrowserWindow({
   title:'Sword & Bannerfall',

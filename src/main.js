@@ -587,23 +587,28 @@ class Arena extends Phaser.Scene {
       if(launched){this.controlMode.begin();this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START — '+(this.controlMode.localTwoPlayer?'LOCAL 2P':'VS AI'));}
       this.showState();return;
     }
-    if(this.comeback.offer('blue')){
-      if(Phaser.Input.Keyboard.JustDown(this.keys.ONE))this.chooseComeback('blue',0);
-      else if(Phaser.Input.Keyboard.JustDown(this.keys.TWO))this.chooseComeback('blue',1);
-      else if(Phaser.Input.Keyboard.JustDown(this.keys.THREE))this.chooseComeback('blue',2);
+    // Card selection consumes X/Y/B for its own frame so it cannot also
+    // trigger an unintended champion strike or shot.
+    const blueDraftOpen=Boolean(this.comeback.offer('blue'));
+    const redDraftOpen=this.controlMode.localTwoPlayer&&
+      Boolean(this.comeback.offer('red'));
+    if(blueDraftOpen){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.ONE)||bluePad.pressed.card1)this.chooseComeback('blue',0);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.TWO)||bluePad.pressed.card2)this.chooseComeback('blue',1);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.THREE)||bluePad.pressed.card3)this.chooseComeback('blue',2);
     }
-    if(this.controlMode.localTwoPlayer&&this.comeback.offer('red')){
-      if(Phaser.Input.Keyboard.JustDown(this.keys.Q))this.chooseComeback('red',0);
-      else if(Phaser.Input.Keyboard.JustDown(this.keys.T))this.chooseComeback('red',1);
-      else if(Phaser.Input.Keyboard.JustDown(this.keys.Y))this.chooseComeback('red',2);
+    if(redDraftOpen){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.Q)||redPad.pressed.card1)this.chooseComeback('red',0);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.T)||redPad.pressed.card2)this.chooseComeback('red',1);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.Y)||redPad.pressed.card3)this.chooseComeback('red',2);
     }
-    if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
-    if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
-    if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+    if(Phaser.Input.Keyboard.JustDown(this.keys.F)||bluePad.pressed.trap)this.deployDefense('trap');
+    if(Phaser.Input.Keyboard.JustDown(this.keys.G)||bluePad.pressed.turret)this.deployDefense('turret');
+    if(Phaser.Input.Keyboard.JustDown(this.keys.H)||bluePad.pressed.shield)this.deployDefense('shield');
     if(this.controlMode.localTwoPlayer){
-      if(Phaser.Input.Keyboard.JustDown(this.keys.V))this.deployDefense('trap','red');
-      if(Phaser.Input.Keyboard.JustDown(this.keys.B))this.deployDefense('turret','red');
-      if(Phaser.Input.Keyboard.JustDown(this.keys.N))this.deployDefense('shield','red');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.V)||redPad.pressed.trap)this.deployDefense('trap','red');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.B)||redPad.pressed.turret)this.deployDefense('turret','red');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.N)||redPad.pressed.shield)this.deployDefense('shield','red');
     }
     const friendlyTargets=[
       ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,y:p.y,hp:this.director.fighters.hero.hp}]:[]),
@@ -690,48 +695,64 @@ class Arena extends Phaser.Scene {
         }
       }
     }
-    const x=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
+    const keyboardAxis=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);
+    const x=keyboardAxis||bluePad.held.axis;
     if(p.active)p.setVelocityX(x*265*this.comeback.speed('blue'));
-    if(p.active&&isGrounded(p.body)&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||Phaser.Input.Keyboard.JustDown(this.keys.W)))p.setVelocityY(-660);
-    if(p.active&&canDropThroughGantry(p.body,p.x,IRON_CITADEL_GANTRIES)&&Phaser.Input.Keyboard.JustDown(this.keys.S)){
+    if(p.active&&isGrounded(p.body)&&(Phaser.Input.Keyboard.JustDown(this.keys.SPACE)||
+       Phaser.Input.Keyboard.JustDown(this.keys.W)||bluePad.pressed.jump||
+       bluePad.pressed.up))p.setVelocityY(-660);
+    if(p.active&&canDropThroughGantry(p.body,p.x,IRON_CITADEL_GANTRIES)&&
+      (Phaser.Input.Keyboard.JustDown(this.keys.S)||bluePad.pressed.down)){
       // S drops through one-way gantries but cannot fall through the solid ground.
       this.playerDropUntil=time+700;
       p.setVelocityY(175);
     }
-    this.director.setStance('hero',this.keys.L.isDown?'guard':'attack');
-    if(Phaser.Input.Keyboard.JustDown(this.keys.E)&&time-this.lastCommand>350){
+    this.director.setStance('hero',this.keys.L.isDown||bluePad.held.guard?'guard':'attack');
+    if((Phaser.Input.Keyboard.JustDown(this.keys.E)||!blueDraftOpen&&bluePad.pressed.order)
+       &&time-this.lastCommand>350){
       this.lastCommand=time;this.director.cycleCommand('hero');
       this.tactics.order('blue',this.director.fighters.hero.command);
       this.companions.command('blue',this.director.fighters.hero.command);
     }
-    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.J)&&time-this.lastStrike>400){
+    if(p.active&&!blueDraftOpen&&
+      (Phaser.Input.Keyboard.JustDown(this.keys.J)||bluePad.pressed.melee)&&
+      time-this.lastStrike>400){
       this.lastStrike=time;this.strike(p,e);
     }
-    if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.K)&&time-this.lastShot>900){
+    if(p.active&&!blueDraftOpen&&
+      (Phaser.Input.Keyboard.JustDown(this.keys.K)||bluePad.pressed.shoot)&&
+      time-this.lastShot>900){
       this.lastShot=time;this.fire(p,e);
     }
     if(e.active&&this.controlMode.localTwoPlayer){
-      const redAxis=(this.keys.RIGHT.isDown?1:0)-(this.keys.LEFT.isDown?1:0);
+      const redKeyboardAxis=(this.keys.RIGHT.isDown?1:0)-(this.keys.LEFT.isDown?1:0);
+      const redAxis=redKeyboardAxis||redPad.held.axis;
       e.setVelocityX(redAxis*265*this.comeback.speed('red'));
-      if(isGrounded(e.body)&&Phaser.Input.Keyboard.JustDown(this.keys.UP))
+      if(isGrounded(e.body)&&(Phaser.Input.Keyboard.JustDown(this.keys.UP)||
+        redPad.pressed.jump||redPad.pressed.up))
         e.setVelocityY(-660);
       if(canDropThroughGantry(e.body,e.x,IRON_CITADEL_GANTRIES)&&
-        Phaser.Input.Keyboard.JustDown(this.keys.DOWN)){
+        (Phaser.Input.Keyboard.JustDown(this.keys.DOWN)||redPad.pressed.down)){
         this.enemyDropUntil=time+700;
         e.setVelocityY(175);
       }
-      this.director.setStance('enemy',this.keys.O.isDown?'guard':'attack');
-      if(Phaser.Input.Keyboard.JustDown(this.keys.R)&&time-this.lastRedCommand>350){
+      this.director.setStance('enemy',this.keys.O.isDown||redPad.held.guard?'guard':'attack');
+      if((Phaser.Input.Keyboard.JustDown(this.keys.R)||!redDraftOpen&&redPad.pressed.order)
+         &&time-this.lastRedCommand>350){
         this.lastRedCommand=time;
         this.director.cycleCommand('enemy');
         this.tactics.order('red',this.director.fighters.enemy.command);
         this.companions.command('red',this.director.fighters.enemy.command);
       }
-      if(Phaser.Input.Keyboard.JustDown(this.keys.U)&&time-this.lastRedStrike>400){
+      if(!redDraftOpen&&
+         (Phaser.Input.Keyboard.JustDown(this.keys.U)||redPad.pressed.melee)&&
+         time-this.lastRedStrike>400){
         this.lastRedStrike=time;
         this.strike(e,p);
       }
-      if(Phaser.Input.Keyboard.JustDown(this.keys.I)&&time-this.lastRedShot>900){
+      if(!redDraftOpen&&
+         (Phaser.Input.Keyboard.JustDown(this.keys.I)||redPad.pressed.shoot)&&
+         time-this.lastRedShot>900){
         this.lastRedShot=time;
         this.fire(e,p);
       }

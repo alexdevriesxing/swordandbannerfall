@@ -135,11 +135,11 @@ try{
  assert.equal(result.match.eliminations.red+result.match.remaining.red,10);
  const frozenResult=await snapshot();
  await page.waitForTimeout(400);
- const stillFrozen=await snapshot();
+ const victoryStill=await snapshot();
  for(const team of ['blue','red']){
-  assert.equal(stillFrozen.fighters[team].x,frozenResult.fighters[team].x,
+  assert.equal(victoryStill.fighters[team].x,frozenResult.fighters[team].x,
     team+' champion shifted during frozen victory');
-  assert.equal(stillFrozen.fighters[team].y,frozenResult.fighters[team].y,
+  assert.equal(victoryStill.fighters[team].y,frozenResult.fighters[team].y,
     team+' champion continued falling after match end');
  }
  await page.screenshot({path:'artifacts/03-victory.png'});

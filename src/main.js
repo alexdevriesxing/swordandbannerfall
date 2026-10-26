@@ -380,6 +380,7 @@ class Arena extends Phaser.Scene {
     const queued=this.comeback.snapshot().queued[offer.team];
     this.cardPrompt.setText((isBlue?'BLUE PLAYER':'RED PLAYER')+
       ' — CHOOSE '+(isBlue?'1 / 2 / 3':'Q / T / Y')+
+      ' OR GAMEPAD X / Y / B'+
       (queued?'  (+'+queued+' MORE)':''));
     this.cardPrompt.setVisible(true);
     for(let i=0;i<3;i++){

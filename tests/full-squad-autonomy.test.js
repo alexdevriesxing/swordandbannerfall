@@ -27,8 +27,26 @@ test('nine escorts per team act without controller input', () => {
   assert.equal(director.units.length, 18);
   assert.equal(moved.length, 18);
   assert.equal(new Set(moved.map(a => a.id)).size, 18);
-  assert.ok(director.units.filter(u => u.team === 'blue').every(u => u.x > initial.get(u.id)));
-  assert.ok(director.units.filter(u => u.team === 'red').every(u => u.x < initial.get(u.id)));
+  // All escorts receive an autonomous movement decision. Only the melee
+  // frontline must advance directly: Rangers may fall back to preserve their
+  // standoff distance behind the screen, rather than blindly charging.
+  for (const team of ['blue', 'red']) {
+    const forward = team === 'blue' ? 1 : -1;
+    const fighters = director.units.filter(u => u.team === team);
+    const frontline = fighters.filter(u => u.role !== 'ranger');
+    const rangers = fighters.filter(u => u.role === 'ranger');
+    assert.equal(frontline.length, 6);
+    assert.equal(rangers.length, 3);
+    assert.ok(frontline.every(u => forward * (u.x - initial.get(u.id)) > 0),
+      team + ' melee escorts must advance to engage');
+    assert.ok(rangers.every(u => Number.isFinite(u.x) && u.x >= 50 && u.x <= 1230),
+      team + ' ranged escorts must remain inside the playable arena');
+    for (const fighter of fighters) {
+      const action = moved.find(a => a.id === fighter.id);
+      assert.equal(action.x, fighter.x);
+      assert.ok(Number.isFinite(action.y));
+    }
+  }
 });
 test('casualty stops acting and makes a roster slot available', () => {
   const director = battlefield();

@@ -22,6 +22,9 @@ try{
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='setup',undefined,{timeout:30000});
  const setup=await snapshot();
  assert.deepEqual(setup.match.remaining,{blue:10,red:10});
+ assert.equal(setup.terrain.gantryColliders,2,'Both painted gantries need physical one-way ledges');
+ assert.equal(setup.terrain.barricadeColliders,2,'Both barricades need solid physical bodies');
+ assert.equal(setup.terrain.barricadePaintings,2,'Each barricade requires separate original artwork');
  assert.equal(setup.companions,18);
  assert.equal(setup.preparation,'setup');
  // Enemy prep is paid for, visible, and present before the battle launches.
@@ -133,6 +136,11 @@ try{
  assert.equal(result.match.remaining[result.match.winner==='blue'?'red':'blue'],0);
  assert.equal(result.match.eliminations.blue+result.match.remaining.blue,10);
  assert.equal(result.match.eliminations.red+result.match.remaining.red,10);
+ const intact=result.cover.filter(c=>c.hp>0).length;
+ assert.equal(result.terrain.barricadeColliders,intact,
+   'Destroyed cover must remove its real Arcade physics collider');
+ assert.equal(result.terrain.barricadePaintings,intact,
+   'Destroyed cover must remove its original painted sprite');
  const frozenResult=await snapshot();
  await page.waitForTimeout(400);
  const victoryStill=await snapshot();

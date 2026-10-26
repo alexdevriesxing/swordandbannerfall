@@ -698,7 +698,12 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      defenses:scene.tactics?.defenses.map(d=>({id:d.id,team:d.team,kind:d.kind,x:d.x,hp:d.hp}))??[],
      supply:scene.tactics?{...scene.tactics.supply}:null,
      enemyDefense:scene.enemyDefenses?.snapshot()??null,
-     cover:scene.cover.snapshot().map(c=>({id:c.id,hp:c.hp}))
+     cover:scene.cover.snapshot().map(c=>({id:c.id,hp:c.hp})),
+     terrain:{
+      gantryColliders:scene.platformBodies?.getChildren().filter(v=>v.active).length??0,
+      barricadeColliders:scene.coverPhysicsBodies?.size??0,
+      barricadePaintings:scene.coverSprites?.size??0
+     }
     };
    }
   })

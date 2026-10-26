@@ -25,6 +25,7 @@ import { DemoSession } from './systems/demo-session.js';
 const DEMO_BUILD=import.meta.env.MODE==='demo';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces, isGrounded, canDropThroughGantry } from './levels/arena-physics.js';
+import { APPROVED_ALPHA_BOUNDS, fitPaintedSilhouette, gantryPaintingPlacement } from './levels/approved-art-placement.js';
 
 // Asset-first rendering: no generated textures, geometric stand-ins, or dummy art.
 // All named assets must be licensed and staged before this scene can run.
@@ -111,21 +112,35 @@ class Arena extends Phaser.Scene {
     this.platforms=new PlatformRoutes(IRON_CITADEL_NODES,IRON_CITADEL_LINKS);
     this.platformBodies=this.physics.add.staticGroup();
     for(const platform of IRON_CITADEL_GANTRIES){
-      const sprite=this.platformBodies.create(platform.x,platform.y,'gantry');
-      sprite.setDisplaySize(platform.width,platform.height).setDepth(2);
-      sprite.refreshBody();
-      // Jump up through the gantry and land on its upper surface only.
-      sprite.body.checkCollision.down=false;
-      sprite.body.checkCollision.left=false;
-      sprite.body.checkCollision.right=false;
-      sprite.body.checkCollision.up=true;
+      // Transparent margins in the source painting are not physical terrain.
+      // Keep a precisely authored invisible platform collider and render the
+      // UNDISTORTED source art at its painted edge using approved alpha bounds.
+      const collider=this.platformBodies.create(platform.x,platform.y,'gantry');
+      collider.setDisplaySize(platform.width,platform.height).setVisible(false);
+      collider.refreshBody();
+      collider.body.checkCollision.down=false;
+      collider.body.checkCollision.left=false;
+      collider.body.checkCollision.right=false;
+      collider.body.checkCollision.up=true;
+      const painting=gantryPaintingPlacement(platform);
+      this.add.image(painting.x,painting.y,'gantry')
+        .setDisplaySize(painting.displayWidth,painting.displayHeight).setDepth(2);
     }
     this.coverBodies=this.physics.add.staticGroup();
+    this.coverPhysicsBodies=new Map();
     for(const segment of this.cover.snapshot()){
-      const barricade=this.coverBodies.create(segment.x,580,'barricade');
-      barricade.setDisplaySize(segment.width,125).setDepth(2);
-      barricade.refreshBody();
-      this.coverSprites.set(segment.id,barricade);
+      // The approved barricade art contains large transparent margins. Scale
+      // its painted silhouette to the REAL collider footprint, not its PNG
+      // canvas. This avoids invisible walls and crushed-looking banners.
+      const collider=this.coverBodies.create(segment.x,580,'barricade');
+      collider.setDisplaySize(segment.width,125).setVisible(false);
+      collider.refreshBody();
+      const painting=fitPaintedSilhouette(APPROVED_ALPHA_BOUNDS.barricade,
+        {x:segment.x,y:580,visibleWidth:segment.width,visibleHeight:125});
+      const visual=this.add.image(painting.x,painting.y,'barricade')
+        .setDisplaySize(painting.displayWidth,painting.displayHeight).setDepth(2);
+      this.coverPhysicsBodies.set(segment.id,collider);
+      this.coverSprites.set(segment.id,visual);
     }
     this.teamSprites=new Map();this.bullets=this.physics.add.group({allowGravity:false});
     this.player=this.makeFighter('hero','knight',220);
@@ -374,7 +389,12 @@ class Arena extends Phaser.Scene {
     const hit=this.cover.damage(id,amount);
     const model=this.cover.segments.find(s=>s.id===id);
     if(hit.applied>0)this.pacing.impact(this.time.now);
-    if(hit.destroyed){this.feed.push(this.time.now,'Barricade breached','cover');this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);this.feedback?.setText('COVER DESTROYED');}
+    if(hit.destroyed){
+      this.feed.push(this.time.now,'Barricade breached','cover');
+      this.coverSprites.get(id)?.destroy();this.coverSprites.delete(id);
+      this.coverPhysicsBodies.get(id)?.destroy();this.coverPhysicsBodies.delete(id);
+      this.feedback?.setText('COVER DESTROYED');
+    }
     else if(hit.applied&&model){this.coverSprites.get(id)?.setAlpha(Math.max(.35,model.hp/model.maxHp));}
   }
   renderDefense(defense){

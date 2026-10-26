@@ -25,6 +25,15 @@ try{
  assert.equal(setup.demo.elapsedMs,0,'Setup must not use combat time');
  assert.equal(setup.demo.matchesAllowed,1);
  assert.deepEqual(setup.match.remaining,{blue:10,red:10});
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===true,
+   undefined,{timeout:3000});
+ const pausePrep=await state();
+ await page.waitForTimeout(450);
+ assert.equal((await state()).preparationElapsedMs,pausePrep.preparationElapsedMs);
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===false,
+   undefined,{timeout:3000});
  await page.screenshot({path:'artifacts/demo/01-demo-preparation.png'});
 
  await page.keyboard.press('Enter');
@@ -35,6 +44,18 @@ try{
  const inFight=await state();
  assert.ok(inFight.demo.elapsedMs>before.demo.elapsedMs,'Combat must tick the demo clock');
  assert.ok(inFight.demo.remainingMs<240000,'Combat must consume the demo time allowance');
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===true,
+   undefined,{timeout:3000});
+ const pausedDemo=await state();
+ await page.waitForTimeout(450);
+ assert.equal((await state()).demo.elapsedMs,pausedDemo.demo.elapsedMs,
+   'Pausing the browser demo must not consume combat minutes');
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===false,
+   undefined,{timeout:3000});
+ await page.waitForTimeout(160);
+ assert.equal((await state()).paused,false,'Resume bounced to paused state');
  await page.screenshot({path:'artifacts/demo/02-demo-live-combat.png'});
 
  // Wait for either a genuine team victory or the four-minute active-fight cap.
@@ -62,7 +83,8 @@ try{
  console.log(JSON.stringify({passed:true,mode:'HTML5-limited-demo',
   endReason:result.demo.reason,limitMs:result.demo.limitMs,
   checks:['approved art boot','setup not timed','20 fighters','active combat timer',
-    'natural win or four-minute cap','no extra matches','no page errors']}));
+    'natural win or four-minute cap','frozen demo clock during pause',
+    'no extra matches','no page errors']}));
 }catch(error){
  await page.screenshot({path:'artifacts/demo/FAIL-demo.png'}).catch(()=>{});
  console.error('Limited demo Chromium acceptance failed:',error);

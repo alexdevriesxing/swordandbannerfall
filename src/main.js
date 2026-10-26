@@ -1,7 +1,8 @@
 import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
 import {gameAssetUrl} from './systems/asset-paths.js';
-import { TacticalBattle, DEFENSE_CATALOG } from './systems/tactics.js';
+import { TacticalBattle } from './systems/tactics.js';
+import { refundSetupDefenses } from './systems/preparation-economy.js';
 import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover, shotObstruction } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
@@ -433,12 +434,13 @@ class Arena extends Phaser.Scene {
     if(!this.controlMode.toggle())return;
     // Switching controllers before the match must never gift a human captain
     // the AI's already paid-for defensive loadout or consume their budget.
-    for(const defense of this.tactics.defenses.filter(d=>d.team==='red')){
-      this.tactics.supply.red+=DEFENSE_CATALOG[defense.kind].cost;
+    const removed=refundSetupDefenses(this.tactics,'red',{
+      phase:this.preparation.phase
+    });
+    for(const defense of removed){
       this.defenseSprites.get(defense.id)?.destroy();
       this.defenseSprites.delete(defense.id);
     }
-    this.tactics.defenses=this.tactics.defenses.filter(d=>d.team!=='red');
     this.enemyDefenses=new EnemyDefenseDirector();
     if(!this.controlMode.localTwoPlayer){
       for(const defense of this.enemyDefenses.update(this.tactics,{

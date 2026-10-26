@@ -1,1 +1,69 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101722"><title>Sword & Bannerfall — Fire Dragon Interactive</title><style>html,body{margin:0;background:#101722;color:#fff;font-family:system-ui;height:100%;overflow:hidden}#game{width:100%;height:100%}#status{position:absolute;bottom:8px;left:12px;color:#a8afbf;font-size:12px;pointer-events:none}</style></head><body><div id="game"></div><div id="status">Fire Dragon Interactive • P during preparation: VS AI / Local 2P • BLUE: A/D move, W/Space jump, S drop, J/K attack, L guard, E order, F/G/H defense, 1/2/3 cards • RED (Local 2P): arrows move/jump/drop, U/I attack, O guard, R order, V/B/N defense, Q/T/Y cards • Gamepads: A jump, X melee, B shoot, Y order, LB guard, LT/RB/RT defenses, Start confirm, Back pause • Esc pause • Enter start/replay</div><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101722">
+  <title>Sword &amp; Bannerfall — Fire Dragon Interactive</title>
+  <style>
+    html,body{margin:0;background:#101722;color:#fff;font-family:system-ui;height:100%;overflow:hidden}
+    #game{width:100%;height:100%}
+    #status{position:fixed;bottom:8px;left:12px;max-width:65%;color:#c4ccdc;
+      font-size:12px;pointer-events:none;text-shadow:0 1px 3px #000;z-index:3}
+    .controls{position:fixed;bottom:8px;right:12px;z-index:500;max-width:min(95vw,550px);
+      font-size:13px;background:#101722ed;border:1px solid #62718b;border-radius:9px;
+      box-shadow:0 8px 28px #000b}
+    .controls summary{cursor:pointer;list-style-position:inside;padding:9px 14px;
+      color:#ffdc87;font-weight:700}
+    .controls summary:focus-visible{outline:2px solid #ffdc87;outline-offset:2px}
+    .controls[open]{bottom:12px}
+    .controls-body{max-height:65vh;overflow:auto;padding:0 14px 12px}
+    .controls h2{margin:8px 0;font-size:15px}
+    .controls p{color:#c4ccdc;margin:6px 0;line-height:1.45}
+    .controls table{border-collapse:collapse;width:100%;text-align:left}
+    .controls th,.controls td{padding:6px 8px;border-bottom:1px solid #344054;
+      vertical-align:top}
+    .controls th{color:#ffdc87;font-weight:600}
+    @media(max-width:700px){#status{bottom:52px;max-width:calc(100% - 24px)}.controls{left:12px;right:12px;max-width:none}}
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="status">Fire Dragon Interactive · P: VS AI / Local 2P · Enter: Start · Esc: Pause</div>
+  <details class="controls" id="controls">
+    <summary>Controls &amp; Gamepads</summary>
+    <div class="controls-body">
+      <h2>Choose your match</h2>
+      <p>Press <strong>P</strong> during preparation to switch between VS AI and Local 2P. The two champions each have nine AI-controlled allies. Press Enter to begin.</p>
+      <h2>Keyboard</h2>
+      <table>
+        <thead><tr><th scope="col">Action</th><th scope="col">Blue / P1</th><th scope="col">Red / P2</th></tr></thead>
+        <tbody>
+          <tr><td>Move</td><td>A / D</td><td>← / →</td></tr>
+          <tr><td>Jump / Drop</td><td>W or Space / S</td><td>↑ / ↓</td></tr>
+          <tr><td>Melee / Shoot</td><td>J / K</td><td>U / I</td></tr>
+          <tr><td>Hold guard</td><td>L</td><td>O</td></tr>
+          <tr><td>Squad orders</td><td>E</td><td>R</td></tr>
+          <tr><td>Trap / Turret / Shield</td><td>F / G / H</td><td>V / B / N</td></tr>
+          <tr><td>Comeback cards</td><td>1 / 2 / 3</td><td>Q / T / Y</td></tr>
+        </tbody>
+      </table>
+      <h2>Standard gamepad</h2>
+      <p>Controller 1 controls Blue. In Local 2P, Controller 2 controls Red. You can mix controllers and keyboard.</p>
+      <table>
+        <thead><tr><th scope="col">Action</th><th scope="col">Xbox-style button</th></tr></thead>
+        <tbody>
+          <tr><td>Move / Jump / Drop</td><td>Left stick or D-pad / A / Down</td></tr>
+          <tr><td>Melee / Shoot</td><td>X / B</td></tr>
+          <tr><td>Hold guard / Squad orders</td><td>LB / Y</td></tr>
+          <tr><td>Trap / Turret / Shield</td><td>LT / RB / RT</td></tr>
+          <tr><td>Comeback cards</td><td>X / Y / B</td></tr>
+          <tr><td>Start / Pause</td><td>Start / Back</td></tr>
+        </tbody>
+      </table>
+      <p>Escape pauses or resumes. Back on Controller 1 toggles match mode during preparation; during combat it pauses. Hardware controller compatibility requires final gameplay testing.</p>
+    </div>
+  </details>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

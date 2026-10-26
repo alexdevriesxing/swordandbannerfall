@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {TacticalBattle} from '../src/systems/tactics.js';
 import {refundSetupDefenses} from '../src/systems/preparation-economy.js';
 
-test('red human receives exactly 100 supply after AI's original defenses are refunded',()=>{
+test('red human receives exactly 100 supply after AI defenses are refunded',()=>{
  const tactics=new TacticalBattle();
  assert.equal(tactics.deploy('red','turret',940).accepted,true);
  assert.equal(tactics.deploy('red','shield',1080).accepted,true);

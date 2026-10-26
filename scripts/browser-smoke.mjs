@@ -119,6 +119,21 @@ try{
   'Space jump did not propel the player champion upward');
  await page.screenshot({path:'artifacts/02-live-combat.png'});
 
+ // Test an authentic champion shot, using read-only telemetry from the
+ // actual Arcade bullet group. No synthetic projectile or health mutation.
+ await page.keyboard.press('k');
+ await page.waitForFunction(() =>
+   window.__SWORD_BANNERFALL_QA__?.snapshot()?.projectileDetails?.some(
+     shot=>shot.source==='champion'&&shot.team==='blue'
+   ),undefined,{timeout:2500});
+ const firing=await snapshot();
+ const firedBullet=firing.projectileDetails.find(
+   shot=>shot.source==='champion'&&shot.team==='blue');
+ assert.ok(firedBullet&&Number.isFinite(firedBullet.x)&&Number.isFinite(firedBullet.y),
+   'The blue champion failed to create a real travelling projectile');
+ assert.ok(firing.projectiles>=1,'No active projectile is present after firing');
+ await page.screenshot({path:'artifacts/02b-real-champion-projectile.png'});
+
  // Observe the unassisted battle. If real casualties unlock a genuine card,
  // choose it through the actual keyboard and verify that it takes effect.
  // Never fabricate a loss, change HP, or bypass the production-art gate.
@@ -194,7 +209,7 @@ try{
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
   'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
-  'scene pause/resume and frozen Arcade physics','squad order command','guard stance','unassisted victory','comeback card input when unlocked',
+  'scene pause/resume and frozen Arcade physics','squad order command','guard stance','real champion projectile','unassisted victory','comeback card input when unlocked',
   'elimination invariants','frozen victory tableau',
   'defense state reset on replay','active Arcade physics after replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){

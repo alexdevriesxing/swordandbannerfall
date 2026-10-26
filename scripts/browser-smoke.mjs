@@ -133,6 +133,15 @@ try{
  assert.equal(result.match.remaining[result.match.winner==='blue'?'red':'blue'],0);
  assert.equal(result.match.eliminations.blue+result.match.remaining.blue,10);
  assert.equal(result.match.eliminations.red+result.match.remaining.red,10);
+ const frozenResult=await snapshot();
+ await page.waitForTimeout(400);
+ const stillFrozen=await snapshot();
+ for(const team of ['blue','red']){
+  assert.equal(stillFrozen.fighters[team].x,frozenResult.fighters[team].x,
+    team+' champion shifted during frozen victory');
+  assert.equal(stillFrozen.fighters[team].y,frozenResult.fighters[team].y,
+    team+' champion continued falling after match end');
+ }
  await page.screenshot({path:'artifacts/03-victory.png'});
 
  await page.keyboard.press('Enter');
@@ -150,12 +159,24 @@ try{
  assert.equal(replay.comeback.claims.blue,0,'Replay must reset all selected cards');
  assert.equal(replay.comeback.unlocked.blue,0,'Replay must reset unlocked drafts');
  await page.screenshot({path:'artifacts/04-replay-setup.png'});
+ // Prove physics really restarted, not just the data and HUD counters.
+ await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='fight',
+   undefined,{timeout:15000});
+ await page.waitForTimeout(650);
+ const secondStart=await snapshot();
+ await page.keyboard.press('Space');
+ await page.waitForTimeout(130);
+ const secondJump=await snapshot();
+ assert.ok(secondJump.fighters.blue.y<secondStart.fighters.blue.y-10,
+  'Arcade physics remained paused after a full match replay');
 
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
   'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
   'scene pause/resume and frozen Arcade physics','squad order command','guard stance','unassisted victory','comeback card input when unlocked',
-  'elimination invariants','defense state reset on replay'],cardsChosen,winner:result.match.winner}));
+  'elimination invariants','frozen victory tableau',
+  'defense state reset on replay','active Arcade physics after replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);

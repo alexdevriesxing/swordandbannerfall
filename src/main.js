@@ -72,7 +72,7 @@ class PauseMenu extends Phaser.Scene {
   constructor(){super('PauseMenu');}
   create(){
     this.add.text(640,310,
-      'SWORD & BANNERFALL\n\nPAUSED\n\nPRESS ESC TO RESUME',{
+      'SWORD & BANNERFALL\n\nPAUSED\n\nESC OR CONTROLLER BACK TO RESUME',{
       fontFamily:'system-ui',fontSize:'33px',fontStyle:'bold',
       color:'#ffffff',align:'center',
       backgroundColor:'#101722f5',padding:{x:75,y:50},
@@ -86,9 +86,20 @@ class PauseMenu extends Phaser.Scene {
       this.scene.stop();
     };
     this.input.keyboard.on('keydown-ESC',resume);
+    this.resumeBattle=resume;
+    this.controllerResumeArmed=false;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
       this.input.keyboard.off('keydown-ESC',resume);
     });
+  }
+  update(){
+    const arena=this.scene.get('Arena');
+    const blue=readGamepadState(this.input.gamepad?.pad1);
+    const red=arena?.controlMode?.localTwoPlayer?
+      readGamepadState(this.input.gamepad?.pad2):null;
+    const resumeHeld=blue.pause||red?.pause===true;
+    if(!resumeHeld)this.controllerResumeArmed=true;
+    else if(this.controllerResumeArmed)this.resumeBattle?.();
   }
 }
 class Arena extends Phaser.Scene {

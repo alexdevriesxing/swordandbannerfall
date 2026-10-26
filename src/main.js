@@ -465,8 +465,14 @@ class Arena extends Phaser.Scene {
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
-    if(!this.demo?.ended&&this.match.phase!=='finished'&&
+    // Consume any resume keydown while the Scene was paused so the newly
+    // resumed Arena does not immediately pause again on the same Esc press.
+    if(this.pauseReleaseGate){
+      Phaser.Input.Keyboard.JustDown(this.keys.ESC);
+      if(!this.keys.ESC.isDown)this.pauseReleaseGate=false;
+    }else if(!this.demo?.ended&&this.match.phase!=='finished'&&
       Phaser.Input.Keyboard.JustDown(this.keys.ESC)){
+      this.pauseReleaseGate=true;
       this.scene.launch('PauseMenu');
       this.scene.pause();
       return;

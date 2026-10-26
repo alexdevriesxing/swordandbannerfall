@@ -26,3 +26,21 @@ export function rangerStandoffGoal(unit, target, { minimum=115, preferred=175, l
  const direction=unit.x===target.x?(unit.team==='red'?1:-1):Math.sign(unit.x-target.x);
  return Math.max(left,Math.min(right,target.x+direction*preferred));
 }
+
+/**
+ * Keep ranged escorts behind an active melee screen during Hunt advances.
+ * Only constrains movement toward a living target; emergency kiting remains free.
+ */
+export function screenedRangerGoal(unit,target,allies,goal,{gap=60,left=50,right=1230}={}){
+ if(unit?.role!=='ranger'||!target||!Number.isFinite(target.x)||!Number.isFinite(goal))return goal;
+ if(!Number.isFinite(gap)||gap<0)throw new RangeError('Invalid formation gap');
+ const direction=Math.sign(target.x-unit.x);
+ if(!direction||Math.sign(goal-unit.x)!==direction)return goal;
+ const front=allies.filter(a=>a.team===unit.team&&a.id!==unit.id&&a.hp>0&&
+  (a.role==='vanguard'||a.role==='sentinel')&&Number.isFinite(a.x));
+ if(!front.length)return goal;
+ // The furthest advanced melee fighter anchors the screen.
+ const screen=direction>0?Math.max(...front.map(a=>a.x)):Math.min(...front.map(a=>a.x));
+ const limit=Math.max(left,Math.min(right,screen-direction*gap));
+ return direction>0?Math.min(goal,limit):Math.max(goal,limit);
+}

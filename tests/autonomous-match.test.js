@@ -11,6 +11,7 @@ import {validImpact} from '../src/systems/impact.js';
 import {nearestOpponent} from '../src/systems/targeting.js';
 import {planCompanionShot,planCompanionCoverShot} from '../src/systems/companion-projectiles.js';
 import {firstBattleProjectileContact} from '../src/systems/battle-projectiles.js';
+import {planTurretShot} from '../src/systems/turret-projectiles.js';
 import {interceptDamage} from '../src/systems/abilities.js';
 
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
@@ -150,7 +151,21 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
   for(const attack of tactics.getTargets('blue',[
    ...(champions.red.hp>0?[champions.red]:[]),
    ...ai.units.filter(u=>u.team==='red'&&u.hp>0)
-  ],time))hit(attack.targetId,attack.damage,'ranged',time);
+  ],time)){
+   if(attack.kind!=='turret'){
+    hit(attack.targetId,attack.damage,'ranged',time);
+    continue;
+   }
+   const defense=tactics.defenses.find(d=>d.id===attack.defenseId&&d.hp>0);
+   const target=liveTarget(attack.targetId);
+   const projectile=planTurretShot({defense,target,damage:attack.damage,cover});
+   if(!projectile)continue;
+   shots.push({createdAt:time,x:projectile.origin.x,y:projectile.origin.y,
+    velocity:projectile.velocity,team:projectile.team,
+    attacker:attack.defenseId,targetId:projectile.targetId,
+    damage:projectile.damage,coverDamage:projectile.coverDamage});
+   metrics.shots++;
+  }
   for(const team of ['blue','red']){
    if(match.phase!=='fight')break;
    const champion=champions[team];if(champion.hp<=0)continue;

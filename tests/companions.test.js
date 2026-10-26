@@ -51,3 +51,32 @@ test('moderate injuries do not force a permanent retreat',()=>{
  const actions=c.update(1000,100,champions);
  assert.equal(actions.filter(a=>a.type==='attack').length,1);
 });
+
+test('surviving Patrol squad switches to effective Hunt after champion is eliminated',()=>{
+ const director=new CompanionDirector();
+ const unit=director.add('blue',350,{role:'vanguard'});
+ director.command('blue','patrol');
+ const champions={blue:{team:'blue',x:80,hp:0},red:{team:'red',x:750,hp:100}};
+ director.update(1200,500,champions);
+ assert.ok(director.units.find(u=>u.id===unit.id).x>350);
+ assert.equal(director.orders.blue,'patrol','Remember the selected command without allowing a stalemate');
+});
+test('critically wounded last escort fights instead of retreating indefinitely',()=>{
+ const director=new CompanionDirector();
+ const fighter=director.add('blue',500,{role:'ranger'});
+ director.command('blue','guard');
+ director.wound(fighter.id,42); // 3/45 HP, below 25%.
+ const champions={blue:{team:'blue',x:70,hp:0},red:{team:'red',x:675,hp:100}};
+ const actions=director.update(1000,100,champions);
+ assert.ok(actions.some(a=>a.type==='attack'&&a.id===fighter.id));
+});
+test('wounded escort still retreats if team has another living companion',()=>{
+ const director=new CompanionDirector();
+ const wounded=director.add('blue',500,{role:'ranger'});
+ director.add('blue',300,{role:'vanguard'});
+ director.wound(wounded.id,42);
+ const champions={blue:{team:'blue',x:70,hp:0},red:{team:'red',x:675,hp:100}};
+ const actions=director.update(1000,100,champions);
+ assert.equal(actions.some(a=>a.type==='attack'&&a.id===wounded.id),false);
+ assert.ok(director.units.find(u=>u.id===wounded.id).x<500);
+});

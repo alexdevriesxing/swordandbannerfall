@@ -14,7 +14,7 @@ import { CombatFeed, BattlePacing } from './systems/feedback.js';
 import { AttackTelegraphs, healthLabel } from './systems/telegraphs.js';
 import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
-import { resolveProjectileTarget } from './systems/projectile-targets.js';
+import { firstBattleProjectileContact } from './systems/battle-projectiles.js';
 import { planChampionShot } from './systems/champion-projectiles.js';
 import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
@@ -337,33 +337,36 @@ class Arena extends Phaser.Scene {
     };
     for(const projectile of this.bullets.getChildren()){
       if(!projectile.active)continue;
-      const id=projectile.getData('targetId');
-      const victim=resolveProjectileTarget(id,projectile.getData('team'),champions,this.companions.units);
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
-      const contact=sweptProjectileContact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
+      const contact=firstBattleProjectileContact(previous,
+        {x:projectile.x,y:projectile.y},{
+          firingTeam:projectile.getData('team'),
+          champions,companions:this.companions.units,cover:this.cover
+        });
       if(contact?.kind==='cover'){
-        // Projectiles can hit solid cover even after their target has fallen.
-        // Capture attack metadata before destroying the Phaser data manager.
+        // Physical obstruction wins: apply damage once, then remove the bullet.
         const damage=projectile.getData('coverDamage')??projectile.getData('damage')??12;
         projectile.destroy();
         this.damageCover(contact.id,damage);
         continue;
       }
-      if(!victim){projectile.destroy();continue;}
       if(contact?.kind==='unit'){
-        // Destroying Phaser game objects may also release their data manager.
-        // Capture the damage before destruction; apply the hit exactly once.
+        // In a crowded melee the first living opponent, not necessarily the
+        // originally selected target, intercepts the projectile.
         const damage=projectile.getData('damage')??12;
         projectile.destroy();
-        if(victim.kind==='champion'){
-          this.hit(id==='hero'?this.player:this.enemy,damage,'ranged');
+        if(contact.targetKind==='champion'){
+          const target=contact.id==='hero'?this.player:this.enemy;
+          if(target.active)this.hit(target,damage,'ranged');
         }else{
-          this.hitCompanion(this.companions.units.find(u=>u.id===id),damage,this.time.now,'ranged');
+          const target=this.companions.units.find(u=>u.id===contact.id&&u.hp>0);
+          if(target)this.hitCompanion(target,damage,this.time.now,'ranged');
         }
         if(this.match.phase==='finished')return;
       }else{
-        projectile.setData('previousX',projectile.x).setData('previousY',projectile.y);
+        projectile.setData('previousX',projectile.x);
+        projectile.setData('previousY',projectile.y);
       }
     }
   }

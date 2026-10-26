@@ -21,6 +21,7 @@ import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
+import { canPauseMatch } from './systems/pause-contract.js';
 import { DemoSession } from './systems/demo-session.js';
 const DEMO_BUILD=import.meta.env.MODE==='demo';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
@@ -470,7 +471,7 @@ class Arena extends Phaser.Scene {
     if(this.pauseReleaseGate){
       Phaser.Input.Keyboard.JustDown(this.keys.ESC);
       if(!this.keys.ESC.isDown)this.pauseReleaseGate=false;
-    }else if(!this.demo?.ended&&this.match.phase!=='finished'&&
+    }else if(canPauseMatch({phase:this.match.phase,demoEnded:this.demo?.ended})&&
       Phaser.Input.Keyboard.JustDown(this.keys.ESC)){
       this.pauseReleaseGate=true;
       this.scene.launch('PauseMenu');

@@ -32,7 +32,7 @@ test('sandboxed desktop launcher refuses Node and outside network navigation',()
  assert.match(launcher,/contextIsolation:true/);
  assert.match(launcher,/sandbox:true/);
  assert.match(launcher,/webSecurity:true/);
- assert.match(launcher,/isOfflineAssetRequest\(request\.url\)/);
+ assert.match(launcher,/isOfflineAssetRequest\(request\.url,trustedURL\)/);
  assert.match(launcher,/setWindowOpenHandler/);
 });
 test('Vite is explicitly configured for file-based game asset resolution',()=>{

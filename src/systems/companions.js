@@ -47,8 +47,10 @@ export class CompanionDirector {
    }
   }
   const snapshot=this.units.filter(u=>u.hp>0).map(u=>({...u}));
-  // Guarding a fallen champion stalls an elimination match; surviving fighters hunt instead.
-  const battleOrder=team=>champions[team]?.hp<=0&&this.orders[team]==='guard'?'hunt':this.orders[team];
+  // Any defensive posture becomes Hunt after the champion falls; the last
+  // surviving escort must fight even with critically low health.
+  const battleOrder=team=>champions[team]?.hp<=0?'hunt':this.orders[team];
+  const lastStand=team=>champions[team]?.hp<=0&&snapshot.filter(u=>u.team===team).length===1;
   const teamFocus={};
   for(const team of ['blue','red']){
    const enemyTeam=team==='blue'?'red':'blue';
@@ -84,7 +86,7 @@ export class CompanionDirector {
    if(order==='patrol')goal=unit.anchor+Math.sin(timeMs/1150+unit.id)*115;
    if(order==='hunt')goal=closest?closest.x-facing*(unit.role==='ranger'?180:unit.role==='sentinel'?35:20):fallback;
    // Automatically preserve wounded units, irrespective of player micromanagement.
-   if(unit.hp/unit.maxHp<.25)goal=fallback;
+   if(unit.hp/unit.maxHp<.25&&!lastStand(unit.team))goal=fallback;
    // Follow authored connected landings only when a multi-level map supplies them.
    if(platforms&&order==='hunt'&&unit.platformNode&&closest?.platformNode&&unit.platformNode!==closest.platformNode&&!unit.platformJump){
     const route=platforms.route(unit.platformNode,closest.platformNode);
@@ -132,7 +134,7 @@ export class CompanionDirector {
    }
    unit.y=platforms&&unit.platformNode?(platforms.nodes.get(unit.platformNode)?.y??GROUND_Y):GROUND_Y;
    actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
-   if(!closest||unit.hp/unit.maxHp<.25)continue;
+   if(!closest||(unit.hp/unit.maxHp<.25&&!lastStand(unit.team)))continue;
    const enemyY=closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)??GROUND_Y;
    const blockedShot=shotObstruction(cover,{x:unit.x,y:unit.y-17},{x:closest.x,y:enemyY-17});
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});

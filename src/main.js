@@ -17,7 +17,7 @@ import { nearestOpponent } from './systems/targeting.js';
 import { firstBattleProjectileContact } from './systems/battle-projectiles.js';
 import { planChampionShot } from './systems/champion-projectiles.js';
 import { sweptProjectileContact } from './systems/projectile-impact.js';
-import { planCompanionShot } from './systems/companion-projectiles.js';
+import { planCompanionShot, planCompanionCoverShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
@@ -327,6 +327,21 @@ class Arena extends Phaser.Scene {
     bullet.setData('targetId',shot.targetId);
     bullet.setData('source','companion');
     bullet.setData('damage',shot.damage);
+    bullet.body.setAllowGravity(false);
+    bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
+    return true;
+  }
+  fireCompanionCover(attacker,barrier,damage){
+    const shot=planCompanionCoverShot({attacker,barrier,damage});
+    if(!shot)return false;
+    const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
+    bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
+    bullet.setData('team',shot.team);
+    bullet.setData('source','companion');
+    bullet.setData('targetId',null);
+    bullet.setData('damage',shot.damage);
+    bullet.setData('coverDamage',shot.coverDamage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(shot.velocity.x,shot.velocity.y);
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
@@ -686,7 +701,13 @@ class Arena extends Phaser.Scene {
     }
     for(const action of aiActions){
       if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual){visual.x=action.x;visual.y=action.y??590;}const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.y=(action.y??590)-54;label.setText(healthLabel(unit.hp,unit.maxHp));}}
-      if(action.type==='cover-attack')this.damageCover(action.coverId,action.damage);
+      if(action.type==='cover-attack'){
+        const fighter=this.companions.units.find(u=>u.id===action.id&&u.hp>0);
+        const barrier=this.cover.intact().find(w=>w.id===action.coverId);
+        if(!fighter||!barrier)continue;
+        if(fighter.role==='ranger')this.fireCompanionCover(fighter,barrier,action.damage);
+        else this.damageCover(action.coverId,action.damage);
+      }
       if(action.type==='attack'){
         const acting=this.companions.units.find(u=>u.id===action.id);
         if(!acting||acting.hp<=0)continue;

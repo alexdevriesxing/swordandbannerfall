@@ -34,7 +34,7 @@ test('cover-only shots work when living enemy fighters are out of range',()=>{
  const cover=new BattlefieldCover([{id:'near',x:600,width:82,hp:75}]);
  const planned=planChampionShot({attacker,target:null,lookToward:{x:1200,y:590},cover});
  assert.equal(planned.targetId,null);
- assert.equal(planned.velocity.x>0);
+ assert.ok(planned.velocity.x>0);
  assert.equal(sweptProjectileContact(planned.origin,{x:680,y:573},null,cover).id,'near');
  assert.equal(cover.segments[0].hp,75);
 });

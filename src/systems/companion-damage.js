@@ -9,6 +9,6 @@ export function protectedCompanionDamage(tactics,units,target,damage,timeMs){
  const shield=tactics.incomingDamage(target.team,damage,target.x);
  // A fully absorbed hit must not consume an allied Sentinel ability cooldown.
  if(shield.remaining===0)return {damage:0,absorbed:shield.absorbed,intercepted:false};
- const guard=interceptDamage(units,target.team,target.x,shield.remaining,timeMs);
+ const guard=interceptDamage(units,target.team,target.x,shield.remaining,timeMs,target.y??null);
  return {damage:guard.damage,absorbed:shield.absorbed,intercepted:guard.intercepted};
 }

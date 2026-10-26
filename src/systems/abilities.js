@@ -10,10 +10,16 @@ export function specialAttack(unit,timeMs){
  unit.lastAbility=timeMs;
  return {ability:spec.id,bonusDamage:spec.bonusDamage};
 }
-export function interceptDamage(units,team,targetX,damage,timeMs){
+export function interceptDamage(units,team,targetX,damage,timeMs,targetY=null){
  if(!Number.isFinite(damage)||damage<0)throw new RangeError('Invalid interception damage');
  if(damage===0)return {damage:0,intercepted:false};
- const guard=units.find(u=>u.team===team&&u.role==='sentinel'&&u.hp>0&&Math.abs(u.x-targetX)<=110&&timeMs-(u.lastIntercept??-Infinity)>=ABILITIES.sentinel.cooldownMs);
+ // Combatants on separate gantries cannot shield one another through empty air.
+ // The optional Y preserves the existing 1D compatibility for legacy callers.
+ if(targetY!==null&&!Number.isFinite(targetY))throw new RangeError('Invalid protection elevation');
+ const guard=units.find(u=>u.team===team&&u.role==='sentinel'&&u.hp>0&&
+  Math.abs(u.x-targetX)<=110&&
+  (targetY===null||Number.isFinite(u.y)&&Math.abs(u.y-targetY)<=65)&&
+  timeMs-(u.lastIntercept??-Infinity)>=ABILITIES.sentinel.cooldownMs);
  if(!guard)return {damage,intercepted:false};
  guard.lastIntercept=timeMs;
  return {damage:Math.max(0,Math.round(damage*.6)),intercepted:true,sentinelId:guard.id};

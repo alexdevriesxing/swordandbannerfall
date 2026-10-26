@@ -19,3 +19,19 @@ test('a defeated focus is discarded',()=>{
  assert.equal(s.focus('blue',units,[{id:'two',x:180,hp:50}],200,'hunt',100).id,'two');
  assert.equal(s.focus('blue',units,[],250,'hunt',100),null);
 });
+
+test('guard instantly redirects to a fresh threat near the champion',()=>{
+ const s=new SquadCoordinator({rethinkMs:1200});
+ const defenders=[{team:'blue',x:550,hp:80}];
+ const distant={id:'distant',x:520,hp:100};
+ assert.equal(s.focus('blue',defenders,[distant],100,'guard',100).id,'distant');
+ const intruder={id:'intruder',x:125,hp:100};
+ assert.equal(s.focus('blue',defenders,[distant,intruder],150,'guard',100).id,'intruder');
+});
+test('guard holds its existing focus when no new immediate threat appears',()=>{
+ const s=new SquadCoordinator({rethinkMs:1200});
+ const defenders=[{team:'blue',x:550,hp:80}];
+ const first={id:'first',x:500,hp:100};
+ assert.equal(s.focus('blue',defenders,[first],100,'guard',100).id,'first');
+ assert.equal(s.focus('blue',defenders,[{...first,x:900},{id:'other',x:700,hp:100}],150,'guard',100).id,'first');
+});

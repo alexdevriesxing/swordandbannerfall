@@ -72,3 +72,13 @@ The repository now has a **dedicated owner-only GitHub attachment importer**:
 This route is easier than manually applying the files to a local Git checkout, but **still requires attaching the source ZIP once**, because this chat's working container cannot transmit the generated binary ZIP into GitHub directly. The public issue attachment will itself be publicly accessible, just like the public project's assets; do not attach any other private files.
 
 When the import run is green, continue with the separate real Chromium game playthrough and the Windows QA installer workflow, which have deliberately distinct release checks.
+
+## Transparency-aware battlefield placement (26 October 2026)
+
+The verified original source PNGs contain deliberate transparent margins. Rather than modifying, re-exporting or falsely reapproving their checksum-locked bytes, the Phaser scene now uses the **measured visible alpha silhouettes** to place finished art against its authored physics.
+
+- `arena/destructible-barricade.png` is 160 × 280 native pixels, but its painted silhouette occupies the alpha bounds **x=40..120 and y=61..218**. `fitPaintedSilhouette` scales that visible artwork to the collision footprint of each barricade. The collision remains an independent invisible static Arcade body; destroying a barrier removes both the body and the finished painted sprite.
+- `arena/iron-citadel-gantry.png` is 380 × 135 native pixels, with visible alpha bounds **x=74..305 and y=26..109**. The renderer preserves the source aspect ratio and positions the painted top exactly at the one-way physical ledge. Decorative stone and hanging vegetation naturally extend below the physical walking surface. The former 240 × 24 rendering squashed the artwork vertically.
+- No generated textures, stock assets, fake source/rights records, or procedural replacement geometry have been added. The constants live in `src/levels/approved-art-placement.js`; the dimensions, paint centering and platform-top alignment have dedicated model tests in `tests/approved-art-placement.test.js`.
+
+**Release qualification:** These are exact placement calculations based on the supplied authentic art, not a substitute for full browser screenshots, hitbox-feel inspection or animation work. The full strict art checksum gate remains active until all 17 original textures are actually committed.

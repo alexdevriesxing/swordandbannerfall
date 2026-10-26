@@ -9,7 +9,7 @@ import {BattlefieldCover,shotObstruction} from '../src/systems/cover.js';
 import {AttackTelegraphs} from '../src/systems/telegraphs.js';
 import {validImpact} from '../src/systems/impact.js';
 import {nearestOpponent} from '../src/systems/targeting.js';
-import {planCompanionShot} from '../src/systems/companion-projectiles.js';
+import {planCompanionShot,planCompanionCoverShot} from '../src/systems/companion-projectiles.js';
 import {firstBattleProjectileContact} from '../src/systems/battle-projectiles.js';
 import {interceptDamage} from '../src/systems/abilities.js';
 
@@ -87,13 +87,28 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
    attacker:attacker.id,targetId:target.id,damage});
   metrics.shots++;
  }
+ function fireCover(attacker,barrier,damage,time){
+  const shot=planCompanionCoverShot({attacker,barrier,damage});
+  if(!shot)return;
+  shots.push({createdAt:time,x:shot.origin.x,y:shot.origin.y,
+   velocity:shot.velocity,team:shot.team,attacker:attacker.id,
+   targetId:null,damage:shot.damage,coverDamage:shot.coverDamage});
+  metrics.shots++;
+ }
  if(blueHeroFalls)hit('hero',1000,'ranged',0);
  for(let time=1300;time<=maxMs&&match.phase==='fight';time+=stepMs){
   metrics.frames++;
   const actions=ai.update(time,stepMs,champions,cover);
   for(const action of actions){
    if(match.phase!=='fight')break;
-   if(action.type==='cover-attack'){breach(action.coverId,action.damage);continue;}
+   if(action.type==='cover-attack'){
+    const attacker=liveTarget(action.id);
+    const wall=cover.intact().find(w=>w.id===action.coverId);
+    if(!attacker||!wall)continue;
+    if(attacker.role==='ranger')fireCover(attacker,wall,action.damage,time);
+    else breach(action.coverId,action.damage);
+    continue;
+   }
    if(action.type!=='attack')continue;
    const attacker=liveTarget(action.id);
    if(!attacker)continue;
@@ -125,7 +140,7 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
    });
    if(impact?.kind==='cover'){
     shots.splice(i,1);
-    breach(impact.id,shot.damage);
+    breach(impact.id,shot.coverDamage??shot.damage);
    }else if(impact?.kind==='unit'){
     shots.splice(i,1);
     hit(impact.id,shot.damage,'ranged',time);

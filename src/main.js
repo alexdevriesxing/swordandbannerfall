@@ -15,7 +15,7 @@ import { validImpact, resolveTarget } from './systems/impact.js';
 import { nearestOpponent } from './systems/targeting.js';
 import { resolveProjectileTarget } from './systems/projectile-targets.js';
 import { aimVelocity } from './systems/ballistics.js';
-import { sweptProjectileImpact } from './systems/projectile-impact.js';
+import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
@@ -322,9 +322,16 @@ class Arena extends Phaser.Scene {
       if(!victim){projectile.destroy();continue;}
       const previous={x:projectile.getData('previousX')??projectile.x,
         y:projectile.getData('previousY')??projectile.y};
-      const collision=sweptProjectileImpact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
-      if(collision==='cover'){projectile.destroy();continue;}
-      if(collision==='unit'){
+      const contact=sweptProjectileContact(previous,{x:projectile.x,y:projectile.y},victim,this.cover);
+      if(contact?.kind==='cover'){
+        // A real travelling bullet must weaken the FIRST barricade it hits.
+        // Read damage before destroying the Arcade sprite/data manager.
+        const damage=projectile.getData('damage')??12;
+        projectile.destroy();
+        this.damageCover(contact.id,damage);
+        continue;
+      }
+      if(contact?.kind==='unit'){
         // Destroying Phaser game objects may also release their data manager.
         // Capture the damage before destruction; apply the hit exactly once.
         const damage=projectile.getData('damage')??12;

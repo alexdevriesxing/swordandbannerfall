@@ -35,6 +35,8 @@ jobs:
           exit 1
       - name: Verify real 10v10 controls, elimination victory and replay
         run: node scripts/browser-smoke.mjs
+      - name: Verify optional local two-human champion gameplay and fair preparation
+        run: node scripts/browser-local-2p-smoke.mjs
       - name: Preserve actual browser screenshots for review
         if: always()
         uses: actions/upload-artifact@v4

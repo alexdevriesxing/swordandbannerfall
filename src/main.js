@@ -21,6 +21,8 @@ import { planCompanionShot } from './systems/companion-projectiles.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
+import { DemoSession } from './systems/demo-session.js';
+const DEMO_BUILD=import.meta.env.MODE==='demo';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces, isGrounded, canDropThroughGantry } from './levels/arena-physics.js';
 
@@ -150,6 +152,11 @@ class Arena extends Phaser.Scene {
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
     this.endShown=false;
+    this.demo=DEMO_BUILD?new DemoSession():null;
+    this.demoHud=this.demo?this.add.text(640,42,'HTML5 DEMO — ONE MATCH / 4 MINUTES',{
+      fontFamily:'system-ui',fontSize:'15px',fontStyle:'bold',color:'#ffe4ad',
+      backgroundColor:'#101722e8',padding:{x:14,y:8}
+    }).setOrigin(.5).setScrollFactor(0).setDepth(120):null;
     for(const defense of this.enemyDefenses.update(this.tactics,{phase:'setup',timeMs:this.time.now}))
       this.renderDefense(defense);
     this.feedback.setText('PREPARE: F trap / G turret / H shield — ENTER to battle');
@@ -367,6 +374,7 @@ class Arena extends Phaser.Scene {
   }
   finishMatch(){
     if(this.endShown||!this.match.winner)return;
+    if(this.demo)this.demo.finishMatch();
     this.endShown=true;
     const result=matchResultView(this.match.snapshot());
     if(!result)return;
@@ -381,13 +389,38 @@ class Arena extends Phaser.Scene {
     this.showState();
     this.add.image(640,122,'logo').setDisplaySize(80,120).setScrollFactor(0).setDepth(151);
     this.resultScreen=this.add.text(640,328,
-      result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+result.instruction,{
+      result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+
+      (this.demo?'DEMO COMPLETE — FULL WINDOWS GAME AT SNACKBREAKGAMES.COM':result.instruction),{
       fontFamily:'system-ui',fontSize:'27px',fontStyle:'bold',color:'#ffffff',
       align:'center',backgroundColor:'#101722ef',padding:{x:45,y:35},
       lineSpacing:12
     }).setOrigin(.5).setScrollFactor(0).setDepth(150);
   }
+  finishDemo(){
+    if(!this.demo?.ended||this.endShown)return;
+    this.endShown=true;
+    this.telegraphs.clear();
+    this.bullets.clear(true,true);
+    this.player.setVelocity(0,0);this.enemy.setVelocity(0,0);
+    this.physics.world.pause();
+    this.cardPrompt?.setVisible(false);
+    for(const slot of this.cardArtwork??[]){slot.image.setVisible(false);slot.label.setVisible(false);}
+    this.feedback.setText('HTML5 DEMO COMPLETE');
+    this.resultScreen=this.add.text(640,340,
+      'SWORD & BANNERFALL — DEMO COMPLETE\n\n'+
+      'ONE-MATCH PREVIEW / FOUR MINUTES OF COMBAT\n\n'+
+      'FULL WINDOWS GAME AT SNACKBREAKGAMES.COM',{
+      fontFamily:'system-ui',fontSize:'26px',fontStyle:'bold',color:'#ffffff',
+      align:'center',backgroundColor:'#101722ef',padding:{x:35,y:32},lineSpacing:12
+    }).setOrigin(.5).setScrollFactor(0).setDepth(150);
+    this.showState();
+  }
   showState(){
+    if(this.demoHud){
+      const remaining=Math.ceil(this.demo.snapshot().remainingMs/1000);
+      this.demoHud.setText('HTML5 DEMO — '+Math.floor(remaining/60)+':'+
+        String(remaining%60).padStart(2,'0')+' REMAINING — ONE MATCH');
+    }
     const state=this.director.snapshot();
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
@@ -395,9 +428,16 @@ class Arena extends Phaser.Scene {
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
+    if(this.demo?.ended)return;
     if(this.match.phase==='finished'){
       if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER))this.scene.restart();
       return;
+    }
+    if(this.demo){
+      const status=this.demo.advance(Math.min(delta,250),{
+        fighting:this.match.phase==='fight'
+      });
+      if(status.ended){this.finishDemo();return;}
     }
     const p=this.player,e=this.enemy;
     if(this.preparation.phase==='setup'){
@@ -570,6 +610,8 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      },
      companions:scene.companions.units.filter(u=>u.hp>0).length,
      projectiles:scene.bullets?.countActive()??0,
+     demoBuild:DEMO_BUILD,
+     demo:scene.demo?.snapshot()??null,
      // Read-only acceptance diagnostics for real keyboard commands and stance.
      orders:scene.tactics?{...scene.tactics.orders}:null,
      stance:scene.director?.fighters?.hero?.stance??null,

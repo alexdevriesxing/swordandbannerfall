@@ -44,3 +44,16 @@ export function screenedRangerGoal(unit,target,allies,goal,{gap=60,left=50,right
  const limit=Math.max(left,Math.min(right,screen-direction*gap));
  return direction>0?Math.min(goal,limit):Math.max(goal,limit);
 }
+
+/**
+ * Melee assault lanes: Vanguards engage first while Sentinels remain close
+ * enough to shield them. Stable ID-based offsets limit single-point crowding.
+ */
+export function meleeAssaultGoal(unit,target,goal,{left=50,right=1230}={}){
+ if(!['vanguard','sentinel'].includes(unit?.role)||!target||!Number.isFinite(target.x)||!Number.isFinite(unit.x))return goal;
+ const approach=unit.x<=target.x?-1:1;
+ const offset=unit.role==='sentinel'?43:21;
+ const lane=(Number(unit.id)%3-1)*8;
+ const position=target.x+approach*(offset+lane);
+ return Math.max(left,Math.min(right,position));
+}

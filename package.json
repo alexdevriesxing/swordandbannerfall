@@ -13,7 +13,9 @@
     "test:match": "node --test tests/autonomous-match.test.js tests/match-summary.test.js",
     "assets:import-branding": "node scripts/import-official-branding.js",
     "build:windows": "npm run check:release && npm test && npm run build && npm run check:offline-bundle && python scripts/build-windows-icon.py && electron-builder --win nsis --x64 --publish never",
-    "check:offline-bundle": "node scripts/verify-offline-bundle.js"
+    "check:offline-bundle": "node scripts/verify-offline-bundle.js",
+    "build:demo": "vite build --mode demo --outDir dist-demo",
+    "check:demo": "npm run check:release && npm run build:demo"
   },
   "dependencies": {
     "phaser": "4.2.1"

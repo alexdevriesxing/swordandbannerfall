@@ -179,6 +179,9 @@ class Arena extends Phaser.Scene {
     this.studioLogo=this.add.image(1210,75,'logo').setDisplaySize(76,114)
       .setScrollFactor(0).setDepth(100);
     this.overlay=this.add.text(20,18,'',{fontFamily:'system-ui',fontSize:'18px',color:'#ffffff',backgroundColor:'#101722cc',padding:{x:14,y:10}}).setScrollFactor(0).setDepth(99);
+    this.redStatus=this.add.text(1250,215,'',{fontFamily:'system-ui',fontSize:'15px',
+      color:'#ffd3d3',backgroundColor:'#101722dd',padding:{x:12,y:10}})
+      .setOrigin(1,0).setScrollFactor(0).setDepth(110).setVisible(false);
     this.feedback=this.add.text(640,110,'',{fontFamily:'system-ui',fontSize:'27px',color:'#ffcf77',align:'center'}).setOrigin(.5).setDepth(99);
     this.combatLog=this.add.text(20,510,'',{fontFamily:'system-ui',fontSize:'14px',color:'#ffdfaa',backgroundColor:'#101722aa',padding:{x:8,y:6}}).setDepth(99);
     this.cardPrompt=this.add.text(640,207,'',{fontFamily:'system-ui',fontSize:'22px',fontStyle:'bold',color:'#ffeac1',backgroundColor:'#101722ee',align:'center',padding:{x:25,y:15}}).setOrigin(.5).setScrollFactor(0).setDepth(130).setVisible(false);
@@ -520,6 +523,11 @@ class Arena extends Phaser.Scene {
     const match=this.match.snapshot();
     this.combatLog.setText(this.feed.lines(this.time.now).join('\n'));
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10    '+(this.controlMode.localTwoPlayer?'LOCAL 2P':'VS AI')+'\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.redStatus.setVisible(this.controlMode.localTwoPlayer);
+    if(this.controlMode.localTwoPlayer)this.redStatus.setText(
+      'RED PLAYER\nHP '+state.fighters.enemy.hp+' / '+state.fighters.enemy.maxHp+
+      '\nSTANCE '+state.fighters.enemy.stance.toUpperCase()+
+      '\nORDER '+tactics.orders.red.toUpperCase()+'\nSUPPLY '+tactics.supply.red);
   }
   update(time,delta){
     // Consume any resume keydown while the Scene was paused so the newly
@@ -776,6 +784,7 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      // Read-only acceptance diagnostics for real keyboard commands and stance.
      orders:scene.tactics?{...scene.tactics.orders}:null,
      stance:scene.director?.fighters?.hero?.stance??null,
+     redStance:scene.director?.fighters?.enemy?.stance??null,
      comeback:scene.comeback?.snapshot()??null,
      defenses:scene.tactics?.defenses.map(d=>({id:d.id,team:d.team,kind:d.kind,x:d.x,hp:d.hp}))??[],
      supply:scene.tactics?{...scene.tactics.supply}:null,

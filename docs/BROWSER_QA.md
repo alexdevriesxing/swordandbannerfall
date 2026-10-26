@@ -39,3 +39,11 @@ After starting the fight it presses **E** and observes the real squad order chan
 Finally, the replay snapshot must show a new 10v10 roster, restored player and enemy supply, no leftover purchased blue defenses, a reset blue squad command and default Attack stance. This catches incomplete `scene.restart()` cleanup that a win-only smoke would miss.
 
 **Scope:** The standard `npm test` / Vite build CI verifies parsing of this browser script but does not execute Chromium. The manual `Full Chromium gameplay and replay QA` workflow runs these assertions only after all 18 authentic artwork files and their approved rights records pass the hard production-art gate. Green code CI must never be reported as a completed visual playthrough.
+
+## Escape pause and resume QA
+
+During preparation or an active match, **Escape** opens a text-only Pause menu above the rendered battlefield. The Arena Scene is paused (not restarted), freezing its update, Arcade physics, scene-clock events, enemy decisions and active demo countdown. Escape from Pause Menu resumes the same encounter. The input handler deliberately consumes the resume key transition to avoid immediately reopening the menu. Once a match or time-limited demo has ended, pause cannot bypass its completion screen.
+
+Both real Chromium acceptance scripts now test an Escape pause during preparation and during combat, check that elapsed preparation time or the demo countdown stops, and verify the champion's physical X/Y coordinates stay unchanged while frozen. The loopback-only read-only QA snapshot reports `paused` and `preparationElapsedMs`; it provides no method to manipulate game state or advance time.
+
+These remain **pending real-browser checks** until the 17 original artwork files are committed to `public/assets/` and the strict rights/checksum release preflight passes. Node and Vite CI alone cannot demonstrate functioning pause input in the rendered game.

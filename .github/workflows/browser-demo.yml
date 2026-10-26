@@ -1,0 +1,49 @@
+name: Real Chromium limited-demo acceptance
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  html5-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install game dependencies
+        run: npm install --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Strict original-art and rights preflight
+        run: npm run check:release
+      - name: Verify complete gameplay and demo session models
+        run: npm test
+      - name: Compile the separate four-minute HTML5 demo
+        run: npm run build:demo
+      - name: Install Chromium acceptance runner
+        run: npm install --no-save playwright@1.55.0 --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start demo bundle preview on loopback
+        run: |
+          npx vite preview --outDir dist-demo --host 127.0.0.1 --port 4174 > /tmp/sword-demo-vite.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4174/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sword-demo-vite.log
+          exit 1
+      - name: Play one authentic game to natural victory or time cap
+        run: node scripts/browser-demo-smoke.mjs
+      - name: Upload screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sword-bannerfall-limited-demo-qa
+          path: artifacts/demo/
+          if-no-files-found: ignore
+          retention-days: 14

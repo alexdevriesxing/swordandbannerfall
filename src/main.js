@@ -542,8 +542,9 @@ class Arena extends Phaser.Scene {
       Phaser.Input.Keyboard.JustDown(this.keys.ESC);
       if(!this.keys.ESC.isDown)this.pauseReleaseGate=false;
     }else if(canPauseMatch({phase:this.match.phase,demoEnded:this.demo?.ended})&&
-      (Phaser.Input.Keyboard.JustDown(this.keys.ESC)||bluePad.pressed.pause||
-       (this.controlMode.localTwoPlayer&&redPad.pressed.pause))){
+      (Phaser.Input.Keyboard.JustDown(this.keys.ESC)||
+       (this.match.phase==='fight'&&(bluePad.pressed.pause||
+        this.controlMode.localTwoPlayer&&redPad.pressed.pause)))){
       this.pauseReleaseGate=true;
       this.scene.launch('PauseMenu');
       this.scene.pause();
@@ -763,7 +764,7 @@ class Arena extends Phaser.Scene {
     this.showState();
   }
 }
-const swordBannerGame=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena,PauseMenu]});
+const swordBannerGame=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},input:{gamepad:true},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena,PauseMenu]});
 
 // Strictly read-only QA introspection on loopback hosts with an explicit flag.
 // Shipping the build publicly does not enable this interface or any debug actions.

@@ -14,8 +14,9 @@ export function sweptCompanionHit(previous,current,unit,{radius=42,aimOffsetY=17
  * bullets damaging a fighter behind nearer solid cover in the same frame.
  * Returns 'unit', 'cover', or null. Cover top matches approved barricade art.
  */
-export function sweptProjectileImpact(previous,current,unit,cover,{radius=42,aimOffsetY=17,topY=517.5}={}){
- if(![previous?.x,previous?.y,current?.x,current?.y,unit?.x,unit?.y,radius,aimOffsetY].every(Number.isFinite)||radius<=0)return null;
+export function sweptProjectileContact(previous,current,unit,cover,{radius=42,aimOffsetY=17,topY=517.5}={}){
+ if(![previous?.x,previous?.y,current?.x,current?.y,unit?.x,unit?.y,radius,aimOffsetY,topY]
+    .every(Number.isFinite)||radius<=0)return null;
  const dx=current.x-previous.x,dy=current.y-previous.y;
  const a=dx*dx+dy*dy;
  const ox=previous.x-unit.x,oy=previous.y-(unit.y-aimOffsetY);
@@ -24,11 +25,14 @@ export function sweptProjectileImpact(previous,current,unit,cover,{radius=42,aim
  if(c<=0)unitT=0;
  else if(a>0){
   const disc=b*b-4*a*c;
-  if(disc>=0){const enter=(-b-Math.sqrt(disc))/(2*a);if(enter>=0&&enter<=1)unitT=enter;}
+  if(disc>=0){const enter=(-b-Math.sqrt(disc))/(2*a);
+   if(enter>=0&&enter<=1)unitT=enter;}
  }
- let coverT=Infinity;
+ let firstCover=null,coverT=Infinity;
  for(const wall of cover?.intact?.()??[]){
+  if(!wall||!wall.id||![wall.x,wall.width].every(Number.isFinite)||wall.width<=0)continue;
   const left=wall.x-wall.width/2,right=wall.x+wall.width/2,top=wall.topY??topY;
+  if(!Number.isFinite(top))continue;
   let entry=0,exit=1;
   if(dx===0){if(previous.x<left||previous.x>right)continue;}
   else{
@@ -38,8 +42,17 @@ export function sweptProjectileImpact(previous,current,unit,cover,{radius=42,aim
   if(dy===0){if(previous.y<top)continue;}
   else if(dy>0)entry=Math.max(entry,(top-previous.y)/dy);
   else exit=Math.min(exit,(top-previous.y)/dy);
-  if(entry<=exit)coverT=Math.min(coverT,entry);
+  // Deterministic tie-break when two authored walls overlap.
+  if(entry<=exit&&(entry<coverT||(entry===coverT&&String(wall.id)<String(firstCover?.id)))){
+   firstCover=wall;
+   coverT=entry;
+  }
  }
- if(coverT<=unitT&&coverT!==Infinity)return 'cover';
- return unitT!==Infinity?'unit':null;
+ if(firstCover&&coverT<=unitT)return {kind:'cover',id:firstCover.id,time:coverT};
+ return unitT!==Infinity?{kind:'unit',id:unit.id??null,time:unitT}:null;
+}
+
+// Preserve the original public decision API used by existing combat models.
+export function sweptProjectileImpact(previous,current,unit,cover,options={}){
+ return sweptProjectileContact(previous,current,unit,cover,options)?.kind??null;
 }

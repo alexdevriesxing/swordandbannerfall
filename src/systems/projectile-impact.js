@@ -15,18 +15,24 @@ export function sweptCompanionHit(previous,current,unit,{radius=42,aimOffsetY=17
  * Returns 'unit', 'cover', or null. Cover top matches approved barricade art.
  */
 export function sweptProjectileContact(previous,current,unit,cover,{radius=42,aimOffsetY=17,topY=517.5}={}){
- if(![previous?.x,previous?.y,current?.x,current?.y,unit?.x,unit?.y,radius,aimOffsetY,topY]
-    .every(Number.isFinite)||radius<=0)return null;
+ // Missing target is valid for a cover-only shot, or for a projectile whose
+ // assigned fighter was eliminated in flight. The wall must still intercept it.
+ const hasTarget=unit!==null&&unit!==undefined;
+ if(![previous?.x,previous?.y,current?.x,current?.y,radius,aimOffsetY,topY]
+    .every(Number.isFinite)||radius<=0||
+    (hasTarget&&![unit.x,unit.y].every(Number.isFinite)))return null;
  const dx=current.x-previous.x,dy=current.y-previous.y;
- const a=dx*dx+dy*dy;
- const ox=previous.x-unit.x,oy=previous.y-(unit.y-aimOffsetY);
- const b=2*(ox*dx+oy*dy),c=ox*ox+oy*oy-radius*radius;
  let unitT=Infinity;
- if(c<=0)unitT=0;
- else if(a>0){
-  const disc=b*b-4*a*c;
-  if(disc>=0){const enter=(-b-Math.sqrt(disc))/(2*a);
-   if(enter>=0&&enter<=1)unitT=enter;}
+ if(hasTarget){
+  const a=dx*dx+dy*dy;
+  const ox=previous.x-unit.x,oy=previous.y-(unit.y-aimOffsetY);
+  const b=2*(ox*dx+oy*dy),c=ox*ox+oy*oy-radius*radius;
+  if(c<=0)unitT=0;
+  else if(a>0){
+   const disc=b*b-4*a*c;
+   if(disc>=0){const enter=(-b-Math.sqrt(disc))/(2*a);
+    if(enter>=0&&enter<=1)unitT=enter;}
+  }
  }
  let firstCover=null,coverT=Infinity;
  for(const wall of cover?.intact?.()??[]){

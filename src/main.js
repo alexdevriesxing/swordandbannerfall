@@ -653,6 +653,7 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      match:scene.match.snapshot(),
      paused:scene.sys.isPaused(),
      preparation:scene.preparation?.phase??null,
+     preparationElapsedMs:scene.preparation?.elapsed??null,
      fighters:{
       blue:{x:scene.player?.x,y:scene.player?.y,active:scene.player?.active,
         velocityY:scene.player?.body?.velocity?.y??null},

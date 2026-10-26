@@ -351,33 +351,36 @@ class Arena extends Phaser.Scene {
     }
   }
   showComebackCards(){
-    const offer=this.comeback.offer('blue');
+    const blueOffer=this.comeback.offer('blue');
+    const redOffer=this.controlMode.localTwoPlayer?this.comeback.offer('red'):null;
+    const offer=blueOffer??redOffer;
     if(!offer){
       this.cardPrompt.setVisible(false);
       for(const slot of this.cardArtwork){slot.image.setVisible(false);slot.label.setVisible(false);}
       return;
     }
-    const queued=this.comeback.snapshot().queued.blue;
-    this.cardPrompt.setText('TURN THE TIDE — CHOOSE 1 / 2 / 3'+
+    const isBlue=offer.team==='blue';
+    const queued=this.comeback.snapshot().queued[offer.team];
+    this.cardPrompt.setText((isBlue?'BLUE PLAYER':'RED PLAYER')+
+      ' — CHOOSE '+(isBlue?'1 / 2 / 3':'Q / T / Y')+
       (queued?'  (+'+queued+' MORE)':''));
     this.cardPrompt.setVisible(true);
     for(let i=0;i<3;i++){
       const card=offer.options[i],slot=this.cardArtwork[i];
       slot.image.setTexture('card-'+card.id).setVisible(true);
-      slot.label.setText((i+1)+'. '+card.name.toUpperCase()+'\n'+card.description).setVisible(true);
+      slot.label.setText((isBlue?String(i+1):['Q','T','Y'][i])+'. '+card.name.toUpperCase()+'\n'+card.description).setVisible(true);
     }
   }
   offerComeback(team,remaining,ended){
     const offer=this.comeback.casualty(team,{remaining,ended});
     if(!offer)return;
-    if(team==='red'){
-      // Enemy captain chooses immediately; no artificial targeting or RNG.
-      // The AI cannot deploy new defenses midbattle, so prioritize perks
-      // it can actually use: movement, ranged accuracy, then direct damage.
+    if(team==='red'&&!this.controlMode.localTwoPlayer){
+      // VS AI red captain chooses without user intervention.
       this.chooseComeback('red',[1,2,1][this.comeback.claims.red]??0);
     }else{
       this.showComebackCards();
-      this.feed.push(this.time.now,'Comeback card ready: choose 1, 2 or 3','card');
+      this.feed.push(this.time.now,team.toUpperCase()+
+        (team==='blue'?' comeback: choose 1, 2 or 3':' comeback: choose Q, T or Y'),'card');
     }
   }
   chooseComeback(team,index){
@@ -391,7 +394,7 @@ class Arena extends Phaser.Scene {
       const champion=this.director.fighters[team==='blue'?'hero':'enemy'];
       if(champion.hp>0)champion.hp=Math.min(champion.maxHp,champion.hp+card.heal);
     }
-    if(team==='blue')this.showComebackCards();
+    if(team==='blue'||this.controlMode.localTwoPlayer)this.showComebackCards();
     this.feed.push(this.time.now,team.toUpperCase()+' CARD: '+card.name.toUpperCase(),'card');
     return true;
   }
@@ -552,6 +555,11 @@ class Arena extends Phaser.Scene {
       if(Phaser.Input.Keyboard.JustDown(this.keys.ONE))this.chooseComeback('blue',0);
       else if(Phaser.Input.Keyboard.JustDown(this.keys.TWO))this.chooseComeback('blue',1);
       else if(Phaser.Input.Keyboard.JustDown(this.keys.THREE))this.chooseComeback('blue',2);
+    }
+    if(this.controlMode.localTwoPlayer&&this.comeback.offer('red')){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.Q))this.chooseComeback('red',0);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.T))this.chooseComeback('red',1);
+      else if(Phaser.Input.Keyboard.JustDown(this.keys.Y))this.chooseComeback('red',2);
     }
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');

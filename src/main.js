@@ -1,7 +1,7 @@
 import * as Phaser from 'phaser';
 import { CombatDirector, ARENA } from './systems/combat.js';
 import {gameAssetUrl} from './systems/asset-paths.js';
-import { TacticalBattle } from './systems/tactics.js';
+import { TacticalBattle, DEFENSE_CATALOG } from './systems/tactics.js';
 import { CompanionDirector } from './systems/companions.js';
 import { BattlefieldCover, shotObstruction } from './systems/cover.js';
 import { PreparationPhase } from './systems/preparation.js';
@@ -426,6 +426,23 @@ class Arena extends Phaser.Scene {
       this.defenseSprites.delete(defense.id);
     }
   }
+  toggleControlMode(){
+    if(!this.controlMode.toggle())return;
+    // Switching controllers before the match must never gift a human captain
+    // the AI's already paid-for defensive loadout or consume their budget.
+    for(const defense of this.tactics.defenses.filter(d=>d.team==='red')){
+      this.tactics.supply.red+=DEFENSE_CATALOG[defense.kind].cost;
+      this.defenseSprites.get(defense.id)?.destroy();
+      this.defenseSprites.delete(defense.id);
+    }
+    this.tactics.defenses=this.tactics.defenses.filter(d=>d.team!=='red');
+    this.enemyDefenses=new EnemyDefenseDirector();
+    if(!this.controlMode.localTwoPlayer){
+      for(const defense of this.enemyDefenses.update(this.tactics,{
+        phase:'setup',timeMs:this.time.now
+      }))this.renderDefense(defense);
+    }
+  }
   deployDefense(kind,team='blue'){
     const position=team==='red'?Math.max(670,Math.min(1220,this.enemy.x)):
       Math.max(60,Math.min(600,this.player.x));
@@ -534,7 +551,7 @@ class Arena extends Phaser.Scene {
     const p=this.player,e=this.enemy;
     if(this.preparation.phase==='setup'){
       if(Phaser.Input.Keyboard.JustDown(this.keys.P)){
-        this.controlMode.toggle();
+        this.toggleControlMode();
         this.feedback.setText(this.controlMode.localTwoPlayer?
           'LOCAL 2P — RED: ARROWS U/I attacks O guard R order V/B/N defenses — ENTER to start':
           'VS AI — PRESS P FOR LOCAL 2P — ENTER to start');
@@ -573,9 +590,11 @@ class Arena extends Phaser.Scene {
       ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,y:p.y,hp:this.director.fighters.hero.hp}]:[]),
       ...this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).map(u=>({id:u.id,x:u.x,y:u.y,hp:u.hp}))
     ];
-    for(const defense of this.enemyDefenses.update(this.tactics,{
-      phase:'fight',timeMs:time,opponents:friendlyTargets
-    }))this.renderDefense(defense);
+    if(!this.controlMode.localTwoPlayer){
+      for(const defense of this.enemyDefenses.update(this.tactics,{
+        phase:'fight',timeMs:time,opponents:friendlyTargets
+      }))this.renderDefense(defense);
+    }
     const hostileTargets=[
       ...(this.director.fighters.enemy.hp>0?[{id:'enemy',x:e.x,y:e.y,hp:this.director.fighters.enemy.hp}]:[]),
       ...this.companions.units.filter(u=>u.team==='red'&&u.hp>0).map(u=>({id:u.id,x:u.x,y:u.y,hp:u.hp}))

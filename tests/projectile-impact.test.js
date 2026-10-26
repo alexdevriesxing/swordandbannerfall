@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sweptCompanionHit,sweptProjectileImpact,sweptProjectileContact} from '../src/systems/projectile-impact.js';
+import {BattlefieldCover} from '../src/systems/cover.js';
 
 test('fast projectile crossing between frames still hits its assigned opponent',()=>{
  const target={x:200,y:590};
@@ -43,7 +44,6 @@ test('vertical shots intersect cover only after descending below its top',()=>{
 });
 
 test('bullet returns first barrier ID and permits exact destructible-cover damage',()=>{
- const {BattlefieldCover}=await import('../src/systems/cover.js');
  const cover=new BattlefieldCover([
   {id:'near',x:590,width:70,hp:12},
   {id:'far',x:710,width:70,hp:40}

@@ -25,6 +25,9 @@ try{
  assert.equal(setup.demo.elapsedMs,0,'Setup must not use combat time');
  assert.equal(setup.demo.matchesAllowed,1);
  assert.deepEqual(setup.match.remaining,{blue:10,red:10});
+ assert.equal(setup.terrain.gantryColliders,2,'Both painted gantries need physical one-way ledges');
+ assert.equal(setup.terrain.barricadeColliders,2,'Both barricades need solid physical bodies');
+ assert.equal(setup.terrain.barricadePaintings,2,'Each barricade requires separate original artwork');
  await page.keyboard.press('Escape');
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===true,
    undefined,{timeout:3000});
@@ -70,6 +73,11 @@ try{
  assert.ok(result?.demo?.ended,'The limited demo never concluded');
  assert.ok(['match-complete','time-limit'].includes(result.demo.reason));
  assert.equal(result.demo.matchesAllowed,1);
+ const intact=result.cover.filter(c=>c.hp>0).length;
+ assert.equal(result.terrain.barricadeColliders,intact,
+   'Destroyed cover must remove its real Arcade physics collider');
+ assert.equal(result.terrain.barricadePaintings,intact,
+   'Destroyed cover must remove its original painted sprite');
  await page.screenshot({path:'artifacts/demo/03-demo-complete.png'});
 
  // In the demo, Enter must not allow a second match or reset the four-minute clock.

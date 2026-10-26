@@ -184,3 +184,20 @@ test('autonomous match remains bounded across several deterministic seeds',()=>{
   assert.equal(result.metrics.duplicateKOs,0);
  }
 });
+
+test('extended 10v10 projectile-interception scenarios finish without duplicate eliminations',()=>{
+ const seeds=[11,17,29,43,59,71,97,127,181,233,311,409];
+ for(const seed of seeds){
+  const result=simulate({seed,maxMs:180000});
+  assert.equal(result.match.phase,'finished',
+   'battle stalled for seed '+seed+' '+JSON.stringify(result.metrics));
+  assert.ok(['blue','red'].includes(result.match.winner),
+   'invalid winner at seed '+seed);
+  assert.equal(result.metrics.duplicateKOs,0,
+   'duplicate KO at seed '+seed);
+  for(const team of ['blue','red'])
+   assert.equal(result.match.eliminations[team]+result.match.remaining[team],10,
+    'incorrect 10v10 roster accounting for '+team+' seed '+seed);
+  assert.ok(result.metrics.frames<=1800,'seed '+seed+' exceeded frame budget');
+ }
+});

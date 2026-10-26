@@ -78,6 +78,18 @@ try{
  const jumped=await state();
  assert.ok(jumped.fighters.red.y<moved.fighters.red.y-10,
    'ArrowUp failed to initiate second human champion jump');
+ // Both human champions must use real ballistic projectiles, not instant
+ // ranged damage. Observe the red champion's actual Arcade bullet in flight.
+ await page.keyboard.press('i');
+ await page.waitForFunction(()=>
+   window.__SWORD_BANNERFALL_QA__?.snapshot()?.projectileDetails?.some(
+     bullet=>bullet.team==='red'&&bullet.source==='champion'
+   ),undefined,{timeout:2500});
+ const redBullet=(await state()).projectileDetails.find(
+   bullet=>bullet.team==='red'&&bullet.source==='champion');
+ assert.ok(Number.isFinite(redBullet?.x)&&Number.isFinite(redBullet?.y),
+   'Red champion fired without a real travelling projectile');
+ await page.screenshot({path:'artifacts/local-2p/02b-human-red-projectile.png'});
  // Switching controllers in a live match would be unfair and must be rejected.
  await page.keyboard.press('p');
  assert.equal((await state()).controlMode.mode,'local-2p');
@@ -87,7 +99,7 @@ try{
    'default VS AI','full red supply refund','P2 defense purchase',
    'duplicate placement rejection','switch to AI restores authored loadout',
    'match choice locks at start','red horizontal movement','red guard',
-   'red squad orders','red jump','no mid-match controller switching',
+   'red squad orders','red jump','real red champion projectile','no mid-match controller switching',
    'no browser errors']}));
 }catch(e){
  await page.screenshot({path:'artifacts/local-2p/FAIL.png'}).catch(()=>{});

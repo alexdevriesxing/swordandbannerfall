@@ -5,7 +5,10 @@ export class SquadCoordinator {
   if(!['blue','red'].includes(team))throw new Error('Unknown team');
   if(!foes.length){this.targets[team]=null;return null;}
   const existing=foes.find(f=>f.id===this.targets[team]);
-  if(existing&&time-this.decidedAt[team]<this.rethinkMs)return existing;
+  // Guard squads immediately reconsider focus when a new enemy threatens the
+  // champion. Ordinary hunt focus remains sticky to prevent target thrashing.
+  const newGuardThreat=order==='guard'&&foes.some(f=>f.id!==existing?.id&&Math.abs(f.x-championX)<250&&(!existing||Math.abs(existing.x-championX)>=250));
+  if(existing&&time-this.decidedAt[team]<this.rethinkMs&&!newGuardThreat)return existing;
   const squad=units.filter(u=>u.team===team&&u.hp>0);
   const center=squad.length?squad.reduce((sum,u)=>sum+u.x,0)/squad.length:championX;
   const scoring=f=>{

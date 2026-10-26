@@ -22,6 +22,7 @@ import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
 import { canPauseMatch } from './systems/pause-contract.js';
 import { DemoSession } from './systems/demo-session.js';
+import { MatchControlMode } from './systems/match-control-mode.js';
 const DEMO_BUILD=import.meta.env.MODE==='demo';
 import { IRON_CITADEL_GANTRIES, IRON_CITADEL_NODES, IRON_CITADEL_LINKS, validateIronCitadel } from './levels/iron-citadel.js';
 import { GROUND_ART_CENTER_Y, GROUND_ART_HEIGHT, championHitbox, validateGantrySurfaces, isGrounded, canDropThroughGantry } from './levels/arena-physics.js';
@@ -97,8 +98,9 @@ class Arena extends Phaser.Scene {
       .setDisplaySize(1280,GROUND_ART_HEIGHT).setDepth(1);
     this.groundBody.refreshBody();
     this.physics.world.setBounds(0,0,1280,720);
-    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ESC,ONE,TWO,THREE');
+    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ESC,ONE,TWO,THREE,P,LEFT,RIGHT,UP,DOWN,U,I,O,R,V,B,N,Q,T,Y');
     this.director=new CombatDirector({seed:101,roundLimit:10});
+    this.controlMode=new MatchControlMode();
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.enemyDefenses=new EnemyDefenseDirector();
     this.preparation=new PreparationPhase({durationMs:12000});
@@ -191,6 +193,7 @@ class Arena extends Phaser.Scene {
     });
     this.cameras.main.setBounds(0,0,1280,720);
     this.lastShot=0;this.lastStrike=0;this.lastEnemyAction=0;this.lastCommand=0;
+    this.lastRedShot=0;this.lastRedStrike=0;this.lastRedCommand=0;
     this.endShown=false;
     this.demo=DEMO_BUILD?new DemoSession():null;
     this.demoHud=this.demo?this.add.text(640,42,'HTML5 DEMO — ONE MATCH / 4 MINUTES',{
@@ -199,7 +202,7 @@ class Arena extends Phaser.Scene {
     }).setOrigin(.5).setScrollFactor(0).setDepth(120):null;
     for(const defense of this.enemyDefenses.update(this.tactics,{phase:'setup',timeMs:this.time.now}))
       this.renderDefense(defense);
-    this.feedback.setText('PREPARE: F trap / G turret / H shield — ENTER to battle');
+    this.feedback.setText('PREPARE: F/G/H defenses — P switch VS AI / Local 2P — ENTER to battle');
     this.showState();
   }
   makeFighter(id,texture,x){
@@ -494,7 +497,7 @@ class Arena extends Phaser.Scene {
     const tactics=this.tactics.snapshot();
     const match=this.match.snapshot();
     this.combatLog.setText(this.feed.lines(this.time.now).join('\n'));
-    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
+    this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10    '+(this.controlMode.localTwoPlayer?'LOCAL 2P':'VS AI')+'\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
     // Consume any resume keydown while the Scene was paused so the newly
@@ -525,11 +528,17 @@ class Arena extends Phaser.Scene {
     }
     const p=this.player,e=this.enemy;
     if(this.preparation.phase==='setup'){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.P)){
+        this.controlMode.toggle();
+        this.feedback.setText(this.controlMode.localTwoPlayer?
+          'LOCAL 2P — RED: ARROWS U/I attacks O guard R order V/B/N defenses — ENTER to start':
+          'VS AI — PRESS P FOR LOCAL 2P — ENTER to start');
+      }
       if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
       if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
       if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
       const launched=Phaser.Input.Keyboard.JustDown(this.keys.ENTER)?this.preparation.launch():this.preparation.tick(Math.min(delta,100));
-      if(launched){this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START');}
+      if(launched){this.controlMode.begin();this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START — '+(this.controlMode.localTwoPlayer?'LOCAL 2P':'VS AI'));}
       this.showState();return;
     }
     if(this.comeback.offer('blue')){
@@ -687,6 +696,7 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
     return {
      match:scene.match.snapshot(),
      paused:scene.sys.isPaused(),
+     controlMode:scene.controlMode?.snapshot()??null,
      preparation:scene.preparation?.phase??null,
      preparationElapsedMs:scene.preparation?.elapsed??null,
      fighters:{

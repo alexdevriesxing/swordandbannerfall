@@ -29,6 +29,20 @@ try{
  assert.equal(setup.supply.red,20);
  assert.equal(setup.supply.blue,100);
  assert.equal(setup.orders.blue,'guard');
+ // A true scene pause freezes preparation and player physics but retains the
+ // painted scene behind the menu. Resume must not bounce back to paused.
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===true,
+   undefined,{timeout:3000});
+ const pausedSetup=await snapshot();
+ await page.waitForTimeout(450);
+ assert.equal((await snapshot()).preparationElapsedMs,pausedSetup.preparationElapsedMs,
+   'Preparation advanced while paused');
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===false,
+   undefined,{timeout:3000});
+ await page.waitForTimeout(160);
+ assert.equal((await snapshot()).paused,false,'Escape resume bounced back to pause');
  await page.screenshot({path:'artifacts/01-preparation.png'});
 
  // Deploy one real player turret using the documented setup key, then
@@ -50,6 +64,21 @@ try{
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.match?.phase==='fight',undefined,{timeout:15000});
  await page.waitForTimeout(700); // Let Arcade settle onto physical ground.
  const before=await snapshot();
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===true,
+   undefined,{timeout:3000});
+ const frozen=await snapshot();
+ await page.waitForTimeout(450);
+ const stillFrozen=await snapshot();
+ assert.equal(stillFrozen.fighters.blue.x,frozen.fighters.blue.x,
+   'Champion moved while Arcade physics should be paused');
+ assert.equal(stillFrozen.fighters.blue.y,frozen.fighters.blue.y,
+   'Champion fell while Arcade physics should be paused');
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.paused===false,
+   undefined,{timeout:3000});
+ await page.waitForTimeout(160);
+ assert.equal((await snapshot()).paused,false,'Combat resumed but instantly paused again');
  // Exercise the actual command-cycle and guard bindings while the match is live.
  await page.keyboard.press('e');
  await page.waitForFunction(()=>window.__SWORD_BANNERFALL_QA__?.snapshot()?.orders?.blue==='patrol',
@@ -125,7 +154,7 @@ try{
  assert.deepEqual(runtimeErrors,[],runtimeErrors.join('\n'));
  console.log(JSON.stringify({passed:true,checks:['setup','20 combatants','movement','jump',
   'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
-  'squad order command','guard stance','unassisted victory','comeback card input when unlocked',
+  'scene pause/resume and frozen Arcade physics','squad order command','guard stance','unassisted victory','comeback card input when unlocked',
   'elimination invariants','defense state reset on replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});

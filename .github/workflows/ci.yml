@@ -18,8 +18,11 @@ jobs:
       - name: Syntax-check browser acceptance and desktop entrypoints
         run: |
           node --check scripts/browser-smoke.mjs
+          node --check scripts/browser-demo-smoke.mjs
           node --check desktop/main.cjs
       - run: npm run build
+      - name: Build separated time-limited HTML5 demo
+        run: npm run build:demo
       - name: Verify local file-safe bundle for Windows packaging
         run: npm run check:offline-bundle
       - name: Check production-art readiness (informational until final assets approved)

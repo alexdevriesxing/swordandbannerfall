@@ -57,3 +57,21 @@ export function meleeAssaultGoal(unit,target,goal,{left=50,right=1230}={}){
  const position=target.x+approach*(offset+lane);
  return Math.max(left,Math.min(right,position));
 }
+
+/**
+ * A living Sentinel accompanies a vulnerable frontline ally rather than
+ * charging past them. The escort position remains behind the ally relative
+ * to the enemy. This changes movement only; damage interception is handled
+ * separately by the existing cooldown-based defensive ability.
+ */
+export function sentinelEscortGoal(unit,target,allies,goal,{threshold=0.6,gap=38,left=50,right=1230}={}){
+ if(unit?.role!=='sentinel'||!target||!Number.isFinite(target.x))return goal;
+ const threatened=allies.filter(a=>a.team===unit.team&&a.id!==unit.id&&
+  a.hp>0&&a.role==='vanguard'&&Number.isFinite(a.maxHp)&&a.maxHp>0&&
+  a.hp/a.maxHp<threshold&&Number.isFinite(a.x));
+ if(!threatened.length)return goal;
+ threatened.sort((a,b)=>(a.hp/a.maxHp-b.hp/b.maxHp)||a.id-b.id);
+ const ally=threatened[0];
+ const direction=target.x>=ally.x?-1:1;
+ return Math.max(left,Math.min(right,ally.x+direction*gap));
+}

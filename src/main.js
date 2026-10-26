@@ -311,6 +311,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('previousX',planned.origin.x).setData('previousY',planned.origin.y);
     bullet.setData('team',planned.team);
     bullet.setData('targetId',planned.targetId);
+    bullet.setData('source','champion');
     bullet.setData('damage',planned.damage);
     bullet.setData('coverDamage',planned.coverDamage);
     bullet.body.setAllowGravity(false);
@@ -324,6 +325,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
     bullet.setData('team',shot.team);
     bullet.setData('targetId',shot.targetId);
+    bullet.setData('source','companion');
     bullet.setData('damage',shot.damage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(shot.velocity.x,shot.velocity.y);
@@ -826,6 +828,14 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
      },
      companions:scene.companions.units.filter(u=>u.hp>0).length,
      projectiles:scene.bullets?.countActive()??0,
+     // Only the loopback QA interface exposes projectile diagnostics. This
+     // allows browser acceptance to verify that the player's shot really
+     // travelled, without altering health, cooldowns, or match state.
+     projectileDetails:scene.bullets?.getChildren()
+       .filter(p=>p.active).slice(0,80).map(p=>({
+        team:p.getData('team'),source:p.getData('source')??null,
+        x:p.x,y:p.y,targetId:p.getData('targetId')??null
+       }))??[],
      demoBuild:DEMO_BUILD,
      demo:scene.demo?.snapshot()??null,
      // Read-only acceptance diagnostics for real keyboard commands and stance.

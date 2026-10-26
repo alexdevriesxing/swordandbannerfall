@@ -1,6 +1,6 @@
 import { specialAttack } from './abilities.js';
 import { SquadCoordinator } from './squad.js';
-import { formationGoal, breachCandidate, rangerStandoffGoal } from './formation.js';
+import { formationGoal, breachCandidate, rangerStandoffGoal, screenedRangerGoal } from './formation.js';
 import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
 import { platformJump, advancePlatformJump } from './platform-routes.js';
 import { combatElevation } from './elevation.js';
@@ -95,6 +95,7 @@ export class CompanionDirector {
     const standoff=rangerStandoffGoal(unit,closest);
     if(standoff!==null)goal=standoff;
    }
+   if(order==='hunt'&&closest)goal=screenedRangerGoal(unit,closest,snapshot,goal);
    // Automatically preserve wounded units, irrespective of player micromanagement.
    if(unit.hp/unit.maxHp<.25&&!lastStand(unit.team))goal=fallback;
    // Follow authored connected landings only when a multi-level map supplies them.

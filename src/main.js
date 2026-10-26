@@ -405,6 +405,9 @@ class Arena extends Phaser.Scene {
     this.endShown=true;
     const result=matchResultView(this.match.snapshot());
     if(!result)return;
+    // Keep the victory tableau stationary. Resume the Arcade world before the
+    // next scene.restart so a second match has working champion physics.
+    this.physics.world.pause();
     this.feed.push(this.time.now,result.headline,'victory');
     this.telegraphs.clear();
     this.cardPrompt?.setVisible(false);
@@ -415,7 +418,7 @@ class Arena extends Phaser.Scene {
     this.feedback.setText(result.headline);
     this.showState();
     this.add.image(640,122,'logo').setDisplaySize(80,120).setScrollFactor(0).setDepth(151);
-    if(this.demo){this.physics.world.pause();this.showDemoStoreLink();}
+    if(this.demo)this.showDemoStoreLink();
     this.resultScreen=this.add.text(640,328,
       result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+
       (this.demo?'DEMO COMPLETE — FULL WINDOWS GAME AT SNACKBREAKGAMES.COM':result.instruction),{
@@ -481,7 +484,10 @@ class Arena extends Phaser.Scene {
     }
     if(this.demo?.ended)return;
     if(this.match.phase==='finished'){
-      if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER))this.scene.restart();
+      if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER)){
+        this.physics.world.resume();
+        this.scene.restart();
+      }
       return;
     }
     if(this.demo){

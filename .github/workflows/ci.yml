@@ -18,6 +18,7 @@ jobs:
       - name: Syntax-check browser acceptance and desktop entrypoints
         run: |
           node --check scripts/browser-smoke.mjs
+          node --check scripts/browser-local-2p-smoke.mjs
           node --check scripts/browser-demo-smoke.mjs
           node --check desktop/main.cjs
       - run: npm run build

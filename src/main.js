@@ -62,6 +62,31 @@ class Boot extends Phaser.Scene {
     this.scene.start('Arena');
   }
 }
+// The Arena is paused at the Scene level: update, Arcade world and scene clock
+// all stop while the painted game view stays visible. No fabricated textures.
+class PauseMenu extends Phaser.Scene {
+  constructor(){super('PauseMenu');}
+  create(){
+    this.add.text(640,310,
+      'SWORD & BANNERFALL\n\nPAUSED\n\nPRESS ESC TO RESUME',{
+      fontFamily:'system-ui',fontSize:'33px',fontStyle:'bold',
+      color:'#ffffff',align:'center',
+      backgroundColor:'#101722f5',padding:{x:75,y:50},
+      lineSpacing:13
+    }).setOrigin(.5).setScrollFactor(0).setDepth(200);
+    let closing=false;
+    const resume=()=>{
+      if(closing)return;
+      closing=true;
+      this.scene.resume('Arena');
+      this.scene.stop();
+    };
+    this.input.keyboard.on('keydown-ESC',resume);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{
+      this.input.keyboard.off('keydown-ESC',resume);
+    });
+  }
+}
 class Arena extends Phaser.Scene {
   constructor(){super('Arena');}
   create(){
@@ -71,7 +96,7 @@ class Arena extends Phaser.Scene {
       .setDisplaySize(1280,GROUND_ART_HEIGHT).setDepth(1);
     this.groundBody.refreshBody();
     this.physics.world.setBounds(0,0,1280,720);
-    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ONE,TWO,THREE');
+    this.keys=this.input.keyboard.addKeys('W,A,S,D,SPACE,J,K,L,E,F,G,H,ENTER,ESC,ONE,TWO,THREE');
     this.director=new CombatDirector({seed:101,roundLimit:10});
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.enemyDefenses=new EnemyDefenseDirector();
@@ -440,6 +465,12 @@ class Arena extends Phaser.Scene {
     this.overlay.setText('SWORD & BANNERFALL    ELIMINATION 10v10\nCHAMPION HP '+state.fighters.hero.hp+' / '+state.fighters.enemy.hp+'\nSURVIVORS '+match.remaining.blue+' : '+match.remaining.red+'    SUPPLY '+tactics.supply.blue+' : '+tactics.supply.red+'\nCOMEBACK CARDS '+this.comeback.claims.blue+' / 3    Stance '+state.fighters.hero.stance+'    Order '+tactics.orders.blue+'    Phase '+(this.preparation.phase==='setup'?'PREP '+this.preparation.remaining()+'s':state.phase));
   }
   update(time,delta){
+    if(!this.demo?.ended&&this.match.phase!=='finished'&&
+      Phaser.Input.Keyboard.JustDown(this.keys.ESC)){
+      this.scene.launch('PauseMenu');
+      this.scene.pause();
+      return;
+    }
     if(this.demo?.ended)return;
     if(this.match.phase==='finished'){
       if(Phaser.Input.Keyboard.JustDown(this.keys.ENTER))this.scene.restart();
@@ -599,7 +630,7 @@ class Arena extends Phaser.Scene {
     this.showState();
   }
 }
-const swordBannerGame=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena]});
+const swordBannerGame=new Phaser.Game({type:Phaser.AUTO,parent:'game',width:1280,height:720,backgroundColor:'#101722',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{x:0,y:0},debug:false}},scene:[Boot,Arena,PauseMenu]});
 
 // Strictly read-only QA introspection on loopback hosts with an explicit flag.
 // Shipping the build publicly does not enable this interface or any debug actions.
@@ -611,9 +642,10 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
    snapshot:()=>{
     let scene;
     try{scene=swordBannerGame.scene.getScene('Arena');}catch{return null;}
-    if(!scene?.sys.isActive()||!scene.match)return null;
+    if(!scene?.match||!(scene.sys.isActive()||scene.sys.isPaused()))return null;
     return {
      match:scene.match.snapshot(),
+     paused:scene.sys.isPaused(),
      preparation:scene.preparation?.phase??null,
      fighters:{
       blue:{x:scene.player?.x,y:scene.player?.y,active:scene.player?.active,

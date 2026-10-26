@@ -423,11 +423,13 @@ class Arena extends Phaser.Scene {
       this.defenseSprites.delete(defense.id);
     }
   }
-  deployDefense(kind){
-    const result=this.tactics.deploy('blue',kind,Math.max(60,Math.min(600,this.player.x)));
+  deployDefense(kind,team='blue'){
+    const position=team==='red'?Math.max(670,Math.min(1220,this.enemy.x)):
+      Math.max(60,Math.min(600,this.player.x));
+    const result=this.tactics.deploy(team,kind,position);
     if(!result.accepted){this.feedback.setText('Cannot deploy: '+result.reason);return;}
     this.renderDefense(result.defense);
-    this.feedback.setText(kind.toUpperCase()+' DEPLOYED');
+    this.feedback.setText(team.toUpperCase()+' '+kind.toUpperCase()+' DEPLOYED');
   }
   finishMatch(){
     if(this.endShown||!this.match.winner)return;
@@ -537,6 +539,11 @@ class Arena extends Phaser.Scene {
       if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
       if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
       if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+      if(this.controlMode.localTwoPlayer){
+        if(Phaser.Input.Keyboard.JustDown(this.keys.V))this.deployDefense('trap','red');
+        if(Phaser.Input.Keyboard.JustDown(this.keys.B))this.deployDefense('turret','red');
+        if(Phaser.Input.Keyboard.JustDown(this.keys.N))this.deployDefense('shield','red');
+      }
       const launched=Phaser.Input.Keyboard.JustDown(this.keys.ENTER)?this.preparation.launch():this.preparation.tick(Math.min(delta,100));
       if(launched){this.controlMode.begin();this.match.begin();this.pacing.impact(time);this.feed.push(time,'BATTLE START','phase');this.feedback.setText('BATTLE START — '+(this.controlMode.localTwoPlayer?'LOCAL 2P':'VS AI'));}
       this.showState();return;
@@ -549,6 +556,11 @@ class Arena extends Phaser.Scene {
     if(Phaser.Input.Keyboard.JustDown(this.keys.F))this.deployDefense('trap');
     if(Phaser.Input.Keyboard.JustDown(this.keys.G))this.deployDefense('turret');
     if(Phaser.Input.Keyboard.JustDown(this.keys.H))this.deployDefense('shield');
+    if(this.controlMode.localTwoPlayer){
+      if(Phaser.Input.Keyboard.JustDown(this.keys.V))this.deployDefense('trap','red');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.B))this.deployDefense('turret','red');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.N))this.deployDefense('shield','red');
+    }
     const friendlyTargets=[
       ...(this.director.fighters.hero.hp>0?[{id:'hero',x:p.x,y:p.y,hp:this.director.fighters.hero.hp}]:[]),
       ...this.companions.units.filter(u=>u.team==='blue'&&u.hp>0).map(u=>({id:u.id,x:u.x,y:u.y,hp:u.hp}))
@@ -652,7 +664,33 @@ class Arena extends Phaser.Scene {
     if(p.active&&Phaser.Input.Keyboard.JustDown(this.keys.K)&&time-this.lastShot>900){
       this.lastShot=time;this.fire(p,e);
     }
-    if(e.active){
+    if(e.active&&this.controlMode.localTwoPlayer){
+      const redAxis=(this.keys.RIGHT.isDown?1:0)-(this.keys.LEFT.isDown?1:0);
+      e.setVelocityX(redAxis*265*this.comeback.speed('red'));
+      if(isGrounded(e.body)&&Phaser.Input.Keyboard.JustDown(this.keys.UP))
+        e.setVelocityY(-660);
+      if(canDropThroughGantry(e.body,e.x,IRON_CITADEL_GANTRIES)&&
+        Phaser.Input.Keyboard.JustDown(this.keys.DOWN)){
+        this.enemyDropUntil=time+700;
+        e.setVelocityY(175);
+      }
+      this.director.setStance('enemy',this.keys.O.isDown?'guard':'attack');
+      if(Phaser.Input.Keyboard.JustDown(this.keys.R)&&time-this.lastRedCommand>350){
+        this.lastRedCommand=time;
+        this.director.cycleCommand('enemy');
+        this.tactics.order('red',this.director.fighters.enemy.command);
+        this.companions.command('red',this.director.fighters.enemy.command);
+      }
+      if(Phaser.Input.Keyboard.JustDown(this.keys.U)&&time-this.lastRedStrike>400){
+        this.lastRedStrike=time;
+        this.strike(e,p);
+      }
+      if(Phaser.Input.Keyboard.JustDown(this.keys.I)&&time-this.lastRedShot>900){
+        this.lastRedShot=time;
+        this.fire(e,p);
+      }
+    }
+    if(e.active&&!this.controlMode.localTwoPlayer){
       const decision=enemyChampionDecision({
         x:e.x,y:e.y,grounded:isGrounded(e.body),
         blueChampion:{x:p.x,y:p.y,hp:this.director.fighters.hero.hp},

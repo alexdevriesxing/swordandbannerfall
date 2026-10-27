@@ -80,10 +80,20 @@ export class TacticalBattle {
  incomingDamage(team,amount,x){
   this.requireTeam(team);
   if(!Number.isFinite(amount)||amount<0)throw new RangeError('Invalid damage');
-  const shield=this.defenses.find(d=>d.team===team&&d.kind==='shield'&&d.hp>0&&Math.abs(d.x-x)<=DEFENSE_CATALOG.shield.range);
-  if(!shield)return {absorbed:0,remaining:amount};
-  const absorbed=Math.min(shield.hp,amount);
-  shield.hp-=absorbed;return {absorbed,remaining:amount-absorbed};
+  // Multiple paid shield emitters may cover the same fighter. Drain the
+  // nearest living emitter first and carry any spillover to the next rather
+  // than injuring the fighter while another nearby shield still has charge.
+  const shields=this.defenses.filter(d=>d.team===team&&d.kind==='shield'&&
+    d.hp>0&&Math.abs(d.x-x)<=DEFENSE_CATALOG.shield.range)
+    .sort((a,b)=>Math.abs(a.x-x)-Math.abs(b.x-x)||a.id-b.id);
+  let remaining=amount;
+  for(const shield of shields){
+   if(remaining<=0)break;
+   const absorbed=Math.min(shield.hp,remaining);
+   shield.hp-=absorbed;
+   remaining-=absorbed;
+  }
+  return {absorbed:amount-remaining,remaining};
  }
  grantSupply(team,amount=20){
   this.requireTeam(team);

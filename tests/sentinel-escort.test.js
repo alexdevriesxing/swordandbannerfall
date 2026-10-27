@@ -16,3 +16,23 @@ test('healthy, eliminated and opposing fighters do not trigger escort movement',
  assert.equal(sentinelEscortGoal(unit,{x:800},[{...v,hp:20,team:'red'}],700),700);
  assert.equal(sentinelEscortGoal({...unit,role:'ranger'},{x:800},[{...v,hp:20}],700),700);
 });
+
+test('distant wounded Vanguard does not drag Sentinel across the full battlefield',()=>{
+ const sentinel={id:3,team:'blue',role:'sentinel',x:200,y:590,hp:100};
+ const wounded={id:4,team:'blue',role:'vanguard',x:980,y:590,hp:9,maxHp:80};
+ assert.equal(sentinelEscortGoal(sentinel,{x:1110},[wounded],340),340);
+});
+test('Sentinel holds own level rather than chasing injured allies on another gantry',()=>{
+ const sentinel={id:3,team:'blue',role:'sentinel',x:330,y:445,hp:100};
+ const wounded={id:4,team:'blue',role:'vanguard',x:350,y:590,hp:8,maxHp:80};
+ assert.equal(sentinelEscortGoal(sentinel,{x:600},[wounded],385),385);
+ const sameLevel={...wounded,y:445};
+ assert.equal(sentinelEscortGoal(sentinel,{x:600},[sameLevel],385),312);
+});
+test('Sentinel escort thresholds and ranges are configurable without unsafe values',()=>{
+ const sentinel={id:3,team:'blue',role:'sentinel',x:200,y:590,hp:100};
+ const wounded={id:4,team:'blue',role:'vanguard',x:320,y:590,hp:20,maxHp:80};
+ assert.equal(sentinelEscortGoal(sentinel,{x:600},[wounded],250,{maxDistance:100}),250);
+ assert.equal(sentinelEscortGoal(sentinel,{x:600},[wounded],250,{maxDistance:120}),282);
+ assert.throws(()=>sentinelEscortGoal(sentinel,{x:600},[wounded],250,{maxDistance:-1}),RangeError);
+});

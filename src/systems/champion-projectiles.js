@@ -27,9 +27,15 @@ export function planChampionShot({
   // Do not spawn a projectile on the far side of nearby solid cover.
   const coverEdge=obstruction ?
     Math.max(0,Math.abs(obstruction.x-attacker.x)-obstruction.width/2-4) : 43;
-  const muzzle=Math.min(43,coverEdge);
+  // Never spawn on the far side of a close opponent: the previous fixed
+  // 43px muzzle could send a near-contact shot backwards through the shooter.
+  const targetEdge=Math.max(0,Math.abs(sight.x-attacker.x)-4);
+  const muzzle=Math.min(43,coverEdge,targetEdge);
   const origin={x:attacker.x+direction*muzzle,y:originY};
   const aim=target?destination:{x:obstruction.x,y:originY};
+  // An overlapping target at identical coordinates still receives a
+  // travelling projectile in the attacker's facing direction.
+  if(aim.x===origin.x&&aim.y===origin.y)aim.x+=direction*50;
   return {
     origin,
     velocity:aimVelocity(origin,aim),

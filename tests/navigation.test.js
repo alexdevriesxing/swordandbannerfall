@@ -35,3 +35,28 @@ test('invalid fighter elevation fails closed rather than propagating NaN motion'
  assert.equal(jumpPlan({x:550,y:NaN},750,cover,{timeMs:1000}),null);
  assert.equal(jumpPlan({x:550,y:Infinity},750,cover,{timeMs:1000}),null);
 });
+
+test('the authored jump clears both physical wall edges, not merely its apex',()=>{
+ const wall={id:'barricade',x:620,width:82,hp:90};
+ const cover=new BattlefieldCover([wall]);
+ const unit={id:9,x:550,y:590};
+ const plan=jumpPlan(unit,750,cover,{timeMs:1000});
+ assert.ok(plan,'standard floor barricade is traversable');
+ assert.ok(plan.jumpHeight>115,'a shallow fixed hop would clip into the near wall');
+ unit.jump=plan;
+ for(const x of [wall.x-wall.width/2,wall.x+wall.width/2]){
+  const t=(x-plan.startX)/(plan.endX-plan.startX);
+  const flight=advanceJump(unit,1000+850*t);
+  assert.ok(flight.y+32.5<=(wall.topY??517.5)-5,
+   'feet must clear the wall edge at x='+x);
+ }
+});
+
+test('reject too-tall authored walls if no safe arc is possible',()=>{
+ const tall=new BattlefieldCover([{id:'fortress',x:620,width:82,hp:90,topY:300}]);
+ assert.equal(jumpPlan({id:2,x:550,y:445},750,tall,{timeMs:1000}),null,
+  'no fictional super-jump from an elevated platform');
+ const highGround=new BattlefieldCover([{id:'high-fence',x:620,width:82,hp:90,topY:490}]);
+ assert.equal(jumpPlan({id:2,x:550,y:590},750,highGround,{timeMs:1000}),null,
+  'too-tall ground wall requires a breach rather than clipping');
+});

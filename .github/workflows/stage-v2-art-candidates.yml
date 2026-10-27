@@ -57,8 +57,8 @@ jobs:
           test "$(stat -c %s /tmp/sword-art-v2.zip)" -le 75000000
           test "$(stat -c %s /tmp/sword-art-v2.zip)" -gt 1000
 
-      - name: Securely stage EXACT 17 exports without affecting public assets
-        run: python3 scripts/stage-art-v2-zip.py /tmp/sword-art-v2.zip "$RUNNER_TEMP/sword-v2-review"
+      - name: Securely stage one to seventeen exports without touching production assets
+        run: python3 scripts/stage-art-v2-zip.py /tmp/sword-art-v2.zip "$RUNNER_TEMP/sword-v2-review" --partial
 
       - uses: actions/setup-node@v4
         with:
@@ -69,7 +69,7 @@ jobs:
 
       - name: Decode image structures and actual PNG transparent pixels
         run: |
-          node scripts/review-art-v2.js "$RUNNER_TEMP/sword-v2-review/public/assets" \
+          node scripts/review-art-v2.js "$RUNNER_TEMP/sword-v2-review/public/assets" --partial \
             | tee "$RUNNER_TEMP/sword-v2-review/technical-report.json"
 
       - name: Create source-only contact sheet for human visual review
@@ -80,7 +80,7 @@ jobs:
             "$RUNNER_TEMP/sword-v2-review" \
             "$RUNNER_TEMP/sword-v2-review/contact-sheet.png"
 
-      - name: Publish NON-APPROVED candidate evidence and export bytes
+      - name: Publish NON-APPROVED batch evidence and export bytes
         uses: actions/upload-artifact@v4
         with:
           name: Sword-Bannerfall-v2-art-review-UNAPPROVED

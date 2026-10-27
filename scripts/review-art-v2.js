@@ -8,6 +8,20 @@ import {inspectPngTransparency} from './inspect-png-alpha.js';
 // Read-only technical intake for NEW v2 candidate exports. It never writes to
 // public/assets, changes a license approval, or alters the original v1 lock.
 export const ART_V2_REQUIRED=REQUIRED_ASSETS.filter(path=>!path.startsWith('branding/'));
+// The old live scene uses v1 measured silhouettes. Report exact measured v2
+// artwork bounds for the collider review; NEVER auto-apply or auto-approve them.
+export const ART_V2_COLLIDER_ART=Object.freeze({
+ 'arena/destructible-barricade.png':'barricade',
+ 'arena/iron-citadel-gantry.png':'gantry'
+});
+export function placementCandidateFromAlpha(alpha,sha256){
+ if(!alpha?.ok||!alpha.bounds||!/^[a-f0-9]{64}$/.test(sha256))return null;
+ const {left,top,right,bottom}=alpha.bounds;
+ return {sha256,textureWidth:alpha.width,textureHeight:alpha.height,
+  left,top,right:right+1,bottom:bottom+1,
+  measuredFrom:'decoded PNG pixels, visible when alpha >12; exclusive right/bottom',
+  status:'MEASURED ONLY - manual collision and in-game visual approval required'};
+}
 export const ART_V2_ALPHA=Object.freeze([
  'arena/destructible-barricade.png','arena/iron-citadel-gantry.png',
  'fighters/knight.png','fighters/raider.png',
@@ -34,7 +48,9 @@ export function reviewArtV2(directory,{allowPartial=false}={}){
   const alpha=ART_V2_ALPHA.includes(path)?inspectPngTransparency(bytes):null;
   if(alpha&&!alpha.ok)
    issues.push('unusable sprite transparency ('+alpha.reason+'): '+path);
-  assets[path]={sha256,bytes:bytes.length,alpha};
+  const placement=Object.hasOwn(ART_V2_COLLIDER_ART,path)?
+   placementCandidateFromAlpha(alpha,sha256):null;
+  assets[path]={sha256,bytes:bytes.length,alpha,placement};
  }
  const presentCount=ART_V2_REQUIRED.length-structure.missing.length;
  if(allowPartial&&presentCount===0)issues.push('empty candidate: submit at least one original texture');

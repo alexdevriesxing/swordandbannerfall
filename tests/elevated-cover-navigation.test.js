@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {BattlefieldCover} from '../src/systems/cover.js';
+import {jumpPlan} from '../src/systems/navigation.js';
 import {CompanionDirector} from '../src/systems/companions.js';
 import {PlatformRoutes} from '../src/systems/platform-routes.js';
 import {IRON_CITADEL_NODES,IRON_CITADEL_LINKS} from '../src/levels/iron-citadel.js';
@@ -59,4 +60,18 @@ test('the identical ground-positioned ranger remains blocked by the bulkhead',()
  const updated=ai.units.find(u=>u.id===ranger.id);
  assert.equal(updated.y,590);
  assert.equal(updated.x,885,'ground ranger cannot walk through the barricade');
+});
+
+test('jump planner does not invent a leap across cover already below the fighter',()=>{
+ const cover=new BattlefieldCover([{id:'short-wall',x:620,width:82,hp:80}]);
+ const elevated={id:2,x:550,y:445};
+ assert.equal(jumpPlan(elevated,750,cover,{timeMs:1000}),null);
+ const grounded={...elevated,y:590};
+ assert.ok(jumpPlan(grounded,750,cover,{timeMs:1000})?.active);
+});
+
+test('jump planner still respects genuinely tall cover on an elevated lane',()=>{
+ const cover=new BattlefieldCover([{id:'tall-wall',x:620,width:82,hp:80,topY:420}]);
+ const elevated={id:2,x:550,y:445};
+ assert.ok(jumpPlan(elevated,750,cover,{timeMs:1000})?.active);
 });

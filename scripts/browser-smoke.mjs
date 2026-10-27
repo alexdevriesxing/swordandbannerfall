@@ -132,6 +132,8 @@ try{
  assert.ok(firedBullet&&Number.isFinite(firedBullet.x)&&Number.isFinite(firedBullet.y),
    'The blue champion failed to create a real travelling projectile');
  assert.ok(firing.projectiles>=1,'No active projectile is present after firing');
+ assert.ok(firing.statistics.blue.shots>=1,
+   'The actual champion projectile did not increment live blue shot totals');
  await page.screenshot({path:'artifacts/02b-real-champion-projectile.png'});
 
  // Observe the unassisted battle. If real casualties unlock a genuine card,
@@ -162,6 +164,15 @@ try{
  assert.equal(result.match.remaining[result.match.winner==='blue'?'red':'blue'],0);
  assert.equal(result.match.eliminations.blue+result.match.remaining.blue,10);
  assert.equal(result.match.eliminations.red+result.match.remaining.red,10);
+ assert.ok(result.statistics.blue.shots>0,'Real battle did not track blue projectile launches');
+ for(const team of ['blue','red']){
+  assert.ok(result.statistics[team].damageDealt>=0);
+  assert.ok(result.statistics[team].hits>=0);
+  assert.ok(result.statistics[team].coverDamage>=0);
+  assert.ok(result.statistics[team].cards>=0);
+ }
+ assert.ok(result.statistics.blue.damageDealt+result.statistics.red.damageDealt>0,
+   'The match ended without recording actual fighter damage');
  const intact=result.cover.filter(c=>c.hp>0).length;
  assert.equal(result.terrain.barricadeColliders,intact,
    'Destroyed cover must remove its real Arcade physics collider');
@@ -192,6 +203,11 @@ try{
   'Replay must discard player-purchased defenses');
  assert.equal(replay.comeback.claims.blue,0,'Replay must reset all selected cards');
  assert.equal(replay.comeback.unlocked.blue,0,'Replay must reset unlocked drafts');
+ for(const team of ['blue','red']){
+  assert.deepEqual(replay.statistics[team],{
+   damageDealt:0,hits:0,shots:0,cards:0,coverDamage:0
+  },team+' match statistics leaked into replay setup');
+ }
  await page.screenshot({path:'artifacts/04-replay-setup.png'});
  // Prove physics really restarted, not just the data and HUD counters.
  await page.keyboard.press('Enter');
@@ -211,7 +227,7 @@ try{
   'red preparation defenses','player turret and supply accounting','duplicate placement rejection',
   'scene pause/resume and frozen Arcade physics','squad order command','guard stance','real champion projectile','unassisted victory','comeback card input when unlocked',
   'elimination invariants','frozen victory tableau',
-  'defense state reset on replay','active Arcade physics after replay'],cardsChosen,winner:result.match.winner}));
+  'defense state reset on replay','fresh match statistics on replay','active Arcade physics after replay'],cardsChosen,winner:result.match.winner}));
 }catch(error){
  await page.screenshot({path:'artifacts/FAIL-browser-smoke.png'}).catch(()=>{});
  console.error('Browser smoke failed:',error);

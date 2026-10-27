@@ -54,7 +54,9 @@ export class CompanionDirector {
   // Any defensive posture becomes Hunt after the champion falls; the last
   // surviving escort must fight even with critically low health.
   const battleOrder=team=>champions[team]?.hp<=0?'hunt':this.orders[team];
-  const lastStand=team=>champions[team]?.hp<=0&&snapshot.filter(u=>u.team===team).length===1;
+  // Wounded escorts may withdraw only while a living champion can protect
+  // their retreat. Once that champion falls, survivors must contest the
+  // elimination match even if several battered squadmates remain alive.
   const teamFocus={};
   for(const team of ['blue','red']){
    const enemyTeam=team==='blue'?'red':'blue';
@@ -98,8 +100,11 @@ export class CompanionDirector {
    if(order==='hunt'&&closest)goal=screenedRangerGoal(unit,closest,snapshot,goal);
    if(order==='hunt'&&closest)goal=meleeAssaultGoal(unit,closest,goal);
    if(order==='hunt'&&closest)goal=sentinelEscortGoal(unit,closest,snapshot,goal);
-   // Automatically preserve wounded units, irrespective of player micromanagement.
-   if(unit.hp/unit.maxHp<.25&&!lastStand(unit.team))goal=fallback;
+   // Preserve heavily wounded escorts while their champion still lives.
+   // Without this gate, multiple low-HP survivors on each side can retreat
+   // indefinitely after both captains fall, preventing a 10v10 conclusion.
+   const retreating=champion?.hp>0&&unit.hp/unit.maxHp<.25;
+   if(retreating)goal=fallback;
    // Follow authored connected landings only when a multi-level map supplies them.
    if(platforms&&order==='hunt'&&unit.platformNode&&closest?.platformNode&&unit.platformNode!==closest.platformNode&&!unit.platformJump){
     const route=platforms.route(unit.platformNode,closest.platformNode);
@@ -154,7 +159,7 @@ export class CompanionDirector {
    }
    unit.y=platforms&&unit.platformNode?(platforms.nodes.get(unit.platformNode)?.y??GROUND_Y):GROUND_Y;
    actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
-   if(!closest||(unit.hp/unit.maxHp<.25&&!lastStand(unit.team)))continue;
+   if(!closest||retreating)continue;
    const enemyY=closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)??GROUND_Y;
    const blockedShot=shotObstruction(cover,{x:unit.x,y:unit.y-17},{x:closest.x,y:enemyY-17});
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});

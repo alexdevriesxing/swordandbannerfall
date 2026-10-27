@@ -20,6 +20,7 @@ import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot, planCompanionCoverShot } from './systems/companion-projectiles.js';
 import { planTurretShot } from './systems/turret-projectiles.js';
 import { cleaveSplashTargets, cleaveSplashDamage } from './systems/cleave.js';
+import { MatchStatistics, matchStatSummary } from './systems/match-statistics.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
@@ -120,7 +121,7 @@ class Arena extends Phaser.Scene {
     this.tactics=new TacticalBattle();this.defenseSprites=new Map();
     this.enemyDefenses=new EnemyDefenseDirector();
     this.preparation=new PreparationPhase({durationMs:12000});
-    this.match=new EliminationMatch();
+    this.match=new EliminationMatch();this.matchStats=new MatchStatistics();
     this.feed=new CombatFeed();this.pacing=new BattlePacing();this.telegraphs=new AttackTelegraphs();this.healthLabels=new Map();
     this.companions=new CompanionDirector({maxPerTeam:9});this.companionSprites=new Map();
     this.comeback=new ComebackDraft();
@@ -245,6 +246,7 @@ class Arena extends Phaser.Scene {
     const protection=protectedCompanionDamage(this.tactics,this.companions.units,
       {id,team,x:sprite.x,y:sprite.y},this.comeback.incoming(team,boosted),this.time.now);
     const result=this.director.damage(id,protection.damage,type);
+    this.matchStats.hit(opponent,result.applied);
     if(result.applied>0){this.cameras.main.shake(65,.0011);this.tweens.add({targets:sprite,alpha:.5,duration:70,yoyo:true});}
     if(result.applied>0){this.pacing.impact(this.time.now);this.feed.push(this.time.now,(team==='blue'?'ALLY':'ENEMY')+' champion -'+result.applied+' HP','hit');}
     sprite.setAlpha(.65);this.time.delayedCall(100,()=>sprite.active&&sprite.setAlpha(1));
@@ -275,6 +277,7 @@ class Arena extends Phaser.Scene {
     const adjusted=this.comeback.incoming(target.team,this.comeback.damage(attackerTeam,damage,attackType));
     const protectedHit=protectedCompanionDamage(this.tactics,this.companions.units,target,adjusted,time);
     const result=this.companions.wound(target.id,protectedHit.damage);
+    this.matchStats.hit(attackerTeam,result.applied);
     if(result.applied>0)this.pacing.impact(time);
     if(result.ko){
       const outcome=this.match.eliminate('ai-'+target.id);
@@ -318,6 +321,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('coverDamage',planned.coverDamage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(planned.velocity.x,planned.velocity.y);
+    this.matchStats.shot(bullet.getData('team'));
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
   fireTurret(defense,target,damage){
@@ -332,6 +336,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('coverDamage',shot.coverDamage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.matchStats.shot(bullet.getData('team'));
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
     return true;
   }
@@ -346,6 +351,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('damage',shot.damage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.matchStats.shot(bullet.getData('team'));
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
     return true;
   }
@@ -361,6 +367,7 @@ class Arena extends Phaser.Scene {
     bullet.setData('coverDamage',shot.coverDamage);
     bullet.body.setAllowGravity(false);
     bullet.setVelocity(shot.velocity.x,shot.velocity.y);
+    this.matchStats.shot(bullet.getData('team'));
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
     return true;
   }
@@ -381,8 +388,9 @@ class Arena extends Phaser.Scene {
       if(contact?.kind==='cover'){
         // Physical obstruction wins: apply damage once, then remove the bullet.
         const damage=projectile.getData('coverDamage')??projectile.getData('damage')??12;
+        const team=projectile.getData('team');
         projectile.destroy();
-        this.damageCover(contact.id,damage);
+        this.damageCover(contact.id,damage,team);
         continue;
       }
       if(contact?.kind==='unit'){
@@ -450,11 +458,13 @@ class Arena extends Phaser.Scene {
       if(champion.hp>0)champion.hp=Math.min(champion.maxHp,champion.hp+card.heal);
     }
     if(team==='blue'||this.controlMode.localTwoPlayer)this.showComebackCards();
+    this.matchStats.card(team);
     this.feed.push(this.time.now,team.toUpperCase()+' CARD: '+card.name.toUpperCase(),'card');
     return true;
   }
-  damageCover(id,amount){
+  damageCover(id,amount,team=null){
     const hit=this.cover.damage(id,amount);
+    if(team)this.matchStats.breach(team,hit.applied);
     const model=this.cover.segments.find(s=>s.id===id);
     if(hit.applied>0)this.pacing.impact(this.time.now);
     if(hit.destroyed){
@@ -529,8 +539,9 @@ class Arena extends Phaser.Scene {
     if(this.demo)this.showDemoStoreLink();
     this.resultScreen=this.add.text(640,328,
       result.headline+'\n\n'+result.summary+'\n'+result.casualties+'\n\n'+
+      matchStatSummary(this.matchStats.snapshot())+'\n\n'+
       (this.demo?'DEMO COMPLETE — FULL WINDOWS GAME AT SNACKBREAKGAMES.COM':result.instruction),{
-      fontFamily:'system-ui',fontSize:'27px',fontStyle:'bold',color:'#ffffff',
+      fontFamily:'system-ui',fontSize:'21px',fontStyle:'bold',color:'#ffffff',
       align:'center',backgroundColor:'#101722ef',padding:{x:45,y:35},
       lineSpacing:12
     }).setOrigin(.5).setScrollFactor(0).setDepth(150);
@@ -747,7 +758,7 @@ class Arena extends Phaser.Scene {
         const barrier=this.cover.intact().find(w=>w.id===action.coverId);
         if(!fighter||!barrier)continue;
         if(fighter.role==='ranger')this.fireCompanionCover(fighter,barrier,action.damage);
-        else this.damageCover(action.coverId,action.damage);
+        else this.damageCover(action.coverId,action.damage,action.team);
       }
       if(action.type==='attack'){
         const acting=this.companions.units.find(u=>u.id===action.id);
@@ -889,6 +900,7 @@ if(typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.locati
       red:{x:scene.enemy?.x,y:scene.enemy?.y,active:scene.enemy?.active}
      },
      companions:scene.companions.units.filter(u=>u.hp>0).length,
+     statistics:scene.matchStats?.snapshot()??null,
      projectiles:scene.bullets?.countActive()??0,
      // Only the loopback QA interface exposes projectile diagnostics. This
      // allows browser acceptance to verify that the player's shot really

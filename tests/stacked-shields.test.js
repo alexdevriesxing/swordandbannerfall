@@ -37,7 +37,7 @@ test('shield overlap prevents unnecessary Sentinel ability consumption',()=>{
 });
 test('only friendly, in-range and living shield charge counts',()=>{
  const tactics=overlapping();
- assert.equal(tactics.deploy('red','shield',400).accepted,true);
+ assert.equal(tactics.deploy('red','shield',700).accepted,true);
  const out=tactics.incomingDamage('blue',15,410);
  assert.deepEqual(out,{absorbed:15,remaining:0});
  assert.equal(tactics.defenses[0].hp,90,'shield outside range untouched');

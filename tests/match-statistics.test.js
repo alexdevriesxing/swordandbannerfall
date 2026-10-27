@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MatchStatistics,matchStatSummary} from '../src/systems/match-statistics.js';
+import {CombatDirector} from '../src/systems/combat.js';
 
 test('combat totals include only applied, non-zero damage',()=>{
  const stats=new MatchStatistics();
@@ -53,4 +54,15 @@ test('statistics rejects invalid team and negative health or cover values',()=>{
  assert.throws(()=>stats.hit('blue',-1),RangeError);
  assert.throws(()=>stats.breach('red',Infinity),RangeError);
  assert.deepEqual(stats.snapshot().blue,{damageDealt:0,hits:0,shots:0,cards:0,coverDamage:0});
+});
+
+test('victory damage totals use applied HP, not nominal overkill attack damage',()=>{
+ const combat=new CombatDirector();
+ const stats=new MatchStatistics();
+ combat.fighters.enemy.hp=4;
+ const result=combat.damage('enemy',1000,'ranged');
+ stats.hit('blue',result.applied);
+ assert.deepEqual(result,{applied:4,ko:true});
+ assert.equal(stats.snapshot().blue.damageDealt,4);
+ assert.equal(stats.snapshot().blue.hits,1);
 });

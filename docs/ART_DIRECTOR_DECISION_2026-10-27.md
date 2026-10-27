@@ -54,3 +54,11 @@ A direct inspection of the connected Canva image library recovered two independe
 - `MAHZL_j8s_k` — isolated blue Knight candidate, native **1264×1264 JPG**. Canva's background-removal operation produced new media **`MAHZL3DIzLE`**, 1264×1264; this derivative is designated the transparent fighter candidate. **Decision: pending** full-resolution inspection of actual alpha pixels, cropping, silhouette, orientation, and rendering at 45×65 in-game. The successful operation does not prove those checks passed.
 
 Neither file has been uploaded to GitHub, so neither has a reproducible source/export SHA-256 in this repository. Do not mark either approved in `assets/licenses.json`, overwrite the old original-pack locks, or declare the browser game playable based on these Canva metadata records. Both media IDs belong to the user's Canva account.
+
+## 27 October follow-up: red Raider isolated candidate
+
+The independently generated red Raider source is available in Canva as `MAHZL1sn8eg`, native **1088×1456**, with medieval armor/sword visual tags. The background-removal workflow returned separate derivative **`MAHZLz29SnU`**, also **1088×1456**. The original was filed into the project's v2 Canva candidate folder. Canva denied moving the derivative, so it remains independently addressable.
+
+**Decision: Raider source and cutout are candidates only.** The image generation and cutout operations completed, but the actual pixel-accurate exported PNG was not accessible for independent alpha verification, geometry measurement, full-resolution visual review or GitHub checksum locking. Do not mark `fighters/raider.png` approved, infer that the removal operation produced good edges, or copy the Canva media into a fake runtime path.
+
+Both blue and red fighter source candidates now exist in Canva; clean verified runtime textures still number **zero**. The technical reviewer `npm run art:review-v2 -- PATH` remains mandatory after individual bytes are exported. No original assets or license approvals were modified.

@@ -68,3 +68,25 @@ A second source-generation request for a single red Raider was submitted as a Ca
 Run `npm run art:review-v2 -- /absolute/path/to/v2/assets` on exported image bytes. `scripts/review-art-v2.js` now uses `scripts/inspect-png-alpha.js` to **decompress and inspect the actual PNG alpha pixels** of nine isolated characters, props and effects. The review conservatively requires PNG RGBA/grayscale+alpha 8-bit noninterlaced exports, both visible and transparent pixels, and at least three transparent corners. It rejects fully opaque RGBA files with painted white backgrounds, completely empty transparent canvases and obvious rectangular matte edges, even if the PNG declares an alpha channel. Paletted/interlaced exports need an explicit conversion followed by repeat visual review.
 
 This structural and alpha scan does **not** establish correct anatomy, high-resolution quality, rights clearance or a successful rendered in-game frame; per-asset manual visual approval remains necessary. Production `assets/licenses.json` and v1 checksums remain untouched.
+
+## Owner-only non-destructive v2 intake — GitHub Issue #2
+
+The new [v2 candidate art intake issue](https://github.com/alexdevriesxing/swordandbannerfall/issues/2) is independent from the older **v1 immutable-original importer on Issue #1**. Never use v1's installation issue for v2 outputs or send its source ZIP as a v2 candidate.
+
+To submit a complete isolated v2 pack, export all 17 correctly sized individual textures (with real transparent alpha on nine isolated images), place them at the exact `public/assets/<category>/<filename>` paths listed above, and create the archive **`Sword_Bannerfall_Art_Pack_v2_Candidates.zip`**. In a new owner comment on Issue #2 attach exactly that ZIP. The project-owned GitHub Action `.github/workflows/stage-v2-art-candidates.yml` will:
+
+- refuse arbitrary domains, commenters other than the owner, unrelated issues, malformed or oversized attachments, unsafe ZIP paths, symlinks, encrypted files, extra files and excessive decompression;
+- stage the 17 files outside the actual game directory; never change branding, runtime art, v1 SHA locks or commercial-rights decisions;
+- run `node scripts/review-art-v2.js STAGING_DIR/public/assets` to check source file dimensions, structural integrity and *actual decoded transparent pixels*;
+- generate a labelled, source-derived **review-only** contact sheet (no replacement game shapes or fake illustrations);
+- produce a 14-day GitHub Actions artifact with exact SHA-256s, the technical report and candidate bytes, **not** an approved bundle.
+
+The secure ZIP intake Python unit tests run both from standard push CI and the issue workflow. When working locally, the equivalent commands are:
+
+```bash
+python scripts/stage-art-v2-zip.py Sword_Bannerfall_Art_Pack_v2_Candidates.zip /tmp/bf-v2
+npm run art:review-v2 -- /tmp/bf-v2/public/assets
+python scripts/create-art-v2-review-sheet.py /tmp/bf-v2 /tmp/bf-v2/contact-sheet.png
+```
+
+The local contact-sheet command requires Pillow. Only after source inspection and successful in-engine screenshots may the delegated art director approve any exact runtime file, update the v2 source/output manifest and the rights register, or commit binary game assets. **A successful intake action does not perform these approval steps automatically.**

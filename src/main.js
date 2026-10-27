@@ -243,7 +243,7 @@ class Arena extends Phaser.Scene {
     // Champions and escorts must share exactly the same shield and Sentinel
     // interception rules. A fully absorbed hit consumes neither cooldown.
     const protection=protectedCompanionDamage(this.tactics,this.companions.units,
-      {team,x:sprite.x,y:sprite.y},this.comeback.incoming(team,boosted),this.time.now);
+      {id,team,x:sprite.x,y:sprite.y},this.comeback.incoming(team,boosted),this.time.now);
     const result=this.director.damage(id,protection.damage,type);
     if(result.applied>0){this.cameras.main.shake(65,.0011);this.tweens.add({targets:sprite,alpha:.5,duration:70,yoyo:true});}
     if(result.applied>0){this.pacing.impact(this.time.now);this.feed.push(this.time.now,(team==='blue'?'ALLY':'ENEMY')+' champion -'+result.applied+' HP','hit');}

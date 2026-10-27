@@ -12,6 +12,7 @@ import {nearestOpponent} from '../src/systems/targeting.js';
 import {planCompanionShot,planCompanionCoverShot} from '../src/systems/companion-projectiles.js';
 import {firstBattleProjectileContact} from '../src/systems/battle-projectiles.js';
 import {planTurretShot} from '../src/systems/turret-projectiles.js';
+import {cleaveSplashTargets,cleaveSplashDamage} from '../src/systems/cleave.js';
 import {interceptDamage} from '../src/systems/abilities.js';
 
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
@@ -125,8 +126,21 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
    if(match.phase!=='fight')break;
    const attacker=liveTarget(pending.attacker),target=liveTarget(pending.target);
    if(!validImpact({attacker,target,range:attacker?.range,cover}))continue;
-   if(attacker.role==='ranger')fire(attacker,target,pending.damage,time);
-   else hit(pending.target,pending.damage,'melee',time);
+   if(attacker.role==='ranger'){
+    fire(attacker,target,pending.damage,time);
+   }else{
+    const splash=attacker.role==='vanguard'?cleaveSplashTargets(
+     attacker,{...target,id:pending.target},[
+      ...Object.values(champions).filter(u=>u.hp>0),
+      ...ai.units.filter(u=>u.hp>0)
+     ],{range:attacker.range,cover}):[];
+    hit(pending.target,pending.damage,'melee',time);
+    if(match.phase==='fight')
+     for(const foe of splash){
+      if(match.phase!=='fight')break;
+      hit(foe.id,cleaveSplashDamage(pending.damage),'melee',time);
+     }
+   }
   }
   for(let i=shots.length-1;i>=0;i--){
    const shot=shots[i];

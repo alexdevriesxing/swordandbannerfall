@@ -133,3 +133,19 @@ python scripts/package-art-v2-candidates.py my-v2-art-sources.json Sword_Bannerf
 This command verifies known runtime names, file presence, plausible size and actual PNG/WebP signatures; it **does not** transform/re-export art, resize to invent detail, pretend a JPG is a PNG, or update approved production artwork. It rejects existing output ZIPs rather than overwriting them. Attach the resulting ZIP to the [v2 review Issue #2](https://github.com/alexdevriesxing/swordandbannerfall/issues/2) from the owner account. The automated, non-destructive intake then checks pixel dimensions, PNG decoded alpha, format and SHA-256. All commercial art approvals still require human visual evaluation and live gameplay QA.
 
 The packager is deliberately separate from the old v1 checksum lock and is covered by its own automated security tests.
+
+## 27 October — separate comeback-card artwork recovered in Canva
+
+Five standalone comeback-card generations have been confirmed as completed, each **1264×1264 original JPG** and stored in the [v2 art candidate review folder](https://www.canva.com/folder/FAHZL3s260c):
+
+| Game art slot | Canva original source media | Decision |
+|---|---|---|
+| `cards/war-cry.png` | `MAHZN0oD3lA` | source generated; export/pixel QA pending |
+| `cards/shieldwall.png` | `MAHZN5kZOcs` | source generated; export/pixel QA pending |
+| `cards/swift-march.png` | `MAHZN5vk92k` | source generated; export/pixel QA pending |
+| `cards/field-medics.png` | `MAHZN0qsk-E` | source generated; export/pixel QA pending |
+| `cards/war-chest.png` | `MAHZN4ADorY` | source generated; export/pixel QA pending |
+
+`cards/deadeye.png` was requested separately, but a completed, identified media output could **not** be confirmed during this pass. Do not infer it exists from an earlier accepted job. All five above have the correct **source** dimensions but are JPG media references, **not** usable final `public/assets/cards/*.png` exports yet. Their contents, rendering at in-game size and copyright/provenance still require full-resolution inspection. They are neither approved nor committed to the game. The original Citadel, blue Knight and red Raider sources remain separate candidates.
+
+These cards do not require alpha extraction (illustrated square backgrounds are intended), but they do require real PNG exports with correct file signatures, no embedded text/UI, subject clarity, and exact per-export SHA-256 before art approval.

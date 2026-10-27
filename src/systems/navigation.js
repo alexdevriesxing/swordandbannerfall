@@ -29,7 +29,6 @@ export function jumpPlan(unit,goal,cover,{maxWidth=90,cooldownMs=2600,timeMs=0}=
  const leastLift=Math.min(entryFactor,exitFactor);
  if(!(leastLift>0))return null;
  const startY=unit.y??GROUND_Y;
- const feetY=startY+32.5;
  const requiredLift=Math.max(0,feetY-(block.topY??517.5)+6);
  const jumpHeight=Math.max(115,Math.ceil(requiredLift/leastLift));
  // The authored movement system cannot invent an unbounded super-jump.

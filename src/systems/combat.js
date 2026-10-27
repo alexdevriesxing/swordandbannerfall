@@ -26,8 +26,11 @@ export class CombatDirector {
   const amplified=type==='melee'?raw*(1+attacker.meleeBonus):raw;
   const mitigation=Math.min(.85,victim.armor+(victim.stance==='guard'?.45:0));
   const actual=raw<=0?0:Math.max(1,Math.round(amplified*(1-mitigation)));
-  victim.hp=Math.max(0,victim.hp-actual);
-  return {applied:actual,ko:victim.hp===0};
+  // Only the HP actually removed counts as inflicted damage. A 100-damage
+  // finisher against a champion on 3 HP is 3 applied damage, not 100.
+  const applied=Math.min(victim.hp,actual);
+  victim.hp-=applied;
+  return {applied,ko:applied>0&&victim.hp===0};
  }
  setStance(id,stance){if(this.fighters[id]&&['guard','attack'].includes(stance))this.fighters[id].stance=stance;}
  cycleCommand(id){const f=this.fighters[id];if(!f)return;const modes=['guard','patrol','hunt'];f.command=modes[(modes.indexOf(f.command)+1)%modes.length];}

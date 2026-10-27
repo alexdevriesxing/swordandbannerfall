@@ -102,3 +102,16 @@ The following mechanics have been implemented in the live Phaser scene, the pure
 **Visual acceptance still required:** The original character frames and Cleave VFX must communicate which nearby fighters took damage. Do not use a fabricated swing animation or procedural particle shapes as a stand-in for approved artwork. Once the art pack has been imported, include Cleave crowd hits, simultaneous shield depletion, player feedback and Sentinel protection in human gameplay QA.
 
 Automated Node tests and Vite builds can pass without those original texture files. The mandatory checksum/right-to-use release gate is not waived by this engineering pass.
+
+## 10. Defensive identity, match statistics and pause UX — 27 October 2026
+
+This release-readiness pass adds three verified source-level contracts:
+
+- **Sentinel protection excludes self:** Damage interception now receives the actual protected fighter ID. A Sentinel never consumes its own Intercept cooldown to protect itself, but another nearby, living Sentinel can provide protection. The shared shield-first damage pipeline, Phaser champion/escort paths and seeded 10v10 model use the same ID semantics. Self-interception regression tests cover both factions, overlapping shields and ally protection.
+- **Match statistics are earned, not simulated:** The live combat scene records actual post-protection damage dealt, successful nonzero hits, projectiles launched, applied barricade damage and comeback-card selections. Blue and red totals appear on the victory screen. A full Arena restart constructs fresh counters; the Chromium acceptance script checks both that combat populates the counters and that replay resets them. The read-only `?qa=1` snapshot exposes these totals; the public game has no privileged QA actions.
+- **Discoverable controls:** The pause screen now explains the real blue champion bindings and, when Local 2P is selected, the complete red champion keyboard bindings. The help text uses existing UI typography, not new procedural sprites or placeholder artwork. A renderer-free test verifies both modes.
+- **Sentinel formation sanity:** Escort movement only overrides the Sentinel's current attack goal when the wounded Vanguard is within 600 horizontal scene pixels and the same reachable 65-pixel elevation band. A distant or unreachable ally cannot drag a Sentinel into a nonsensical crossing.
+
+### Manual quality checks once original art is present
+
+In a real Chromium build verify victory-screen statistics correspond to the observed hits and bullets; test pause-screen readability at 1280×720 and standard display scaling; check Local 2P bindings and controller resume; observe a Sentinel taking damage itself next to a wounded Vanguard; and verify match statistics reset following Enter/replay. Human gameplay checks remain mandatory even if Node tests and standard GitHub CI pass.

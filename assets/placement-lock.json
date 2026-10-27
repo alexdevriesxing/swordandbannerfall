@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "packId": "Sword_Bannerfall_Original_Art_Pack_v1",
+  "purpose": "Artwork-bound silhouette placement for real Arcade physics. For any new v2 exports, remeasure, visually approve and update all bindings.",
+  "textures": {
+    "arena/destructible-barricade.png": {
+      "sha256": "4246eca164eccb9f519ec234a697401b26842a4e250b48a58940935118cec448",
+      "placementKey": "barricade",
+      "bounds": {
+        "textureWidth": 160,
+        "textureHeight": 280,
+        "left": 40,
+        "top": 61,
+        "right": 120,
+        "bottom": 218
+      }
+    },
+    "arena/iron-citadel-gantry.png": {
+      "sha256": "a47842f06aaf4d540afb4350ef2ecf0a492e6e2730fbf17b0b2d450d38065cc1",
+      "placementKey": "gantry",
+      "bounds": {
+        "textureWidth": 380,
+        "textureHeight": 135,
+        "left": 74,
+        "top": 26,
+        "right": 305,
+        "bottom": 109
+      }
+    }
+  }
+}

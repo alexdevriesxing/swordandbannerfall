@@ -133,7 +133,14 @@ export class CompanionDirector {
     if(motion){unit.y=motion.y;actions.push(motion);continue;}
    }
    // Grounded units stop at intact barriers.
-   if(cover)goal=cover.approach(unit.x,goal);
+   if(cover){
+    // Ground barricades cannot stop a unit whose feet are fully above
+    // the obstacle's physical top (e.g. on the east Iron Citadel gantry).
+    const feetY=unit.y+32.5; // half of the authored 65px companion silhouette
+    goal=typeof cover.approachAtHeight==='function'
+     ?cover.approachAtHeight(unit.x,goal,feetY)
+     :cover.approach(unit.x,goal);
+   }
    const dist=goal-unit.x;
    const teamSpeed=teamEffects?.[unit.team]?.speedMultiplier??1;
    if(!Number.isFinite(teamSpeed)||teamSpeed<=0||teamSpeed>2)throw new RangeError('Invalid team movement modifier');

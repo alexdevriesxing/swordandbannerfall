@@ -20,3 +20,23 @@ test('negative or non-finite interception amounts are rejected without state cha
  }
  assert.equal(sentinel.lastIntercept,undefined);
 });
+
+test('Sentinel Intercept is a defensive reaction, never a telegraphed attack',()=>{
+ const sentinel={id:15,role:'sentinel',team:'blue',hp:100,x:500,y:590};
+ assert.equal(specialAttack(sentinel,1000),null);
+ assert.equal(sentinel.lastAbility,undefined);
+ assert.equal(specialAttack(sentinel,9000),null);
+ assert.equal(sentinel.lastAbility,undefined);
+ const hit=interceptDamage([sentinel],'blue',510,30,9000,590);
+ assert.deepEqual(hit,{damage:18,intercepted:true,sentinelId:15});
+ assert.equal(sentinel.lastIntercept,9000);
+ assert.equal(specialAttack(sentinel,10000),null);
+});
+test('Vanguard and Ranger offensive cooldowns remain unaffected by Sentinel fix',()=>{
+ const vanguard={role:'vanguard'};
+ const ranger={role:'ranger'};
+ assert.equal(specialAttack(vanguard,1000)?.ability,'cleave');
+ assert.equal(specialAttack(vanguard,2000),null);
+ assert.equal(specialAttack(ranger,1000)?.ability,'precision');
+ assert.equal(specialAttack(ranger,3000),null);
+});

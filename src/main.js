@@ -301,7 +301,10 @@ class Arena extends Phaser.Scene {
     const selected=this.championTarget(source,112);
     const facing=(selected?.x??target.x)-source.x;
     if(!selected)return;
-    if(Math.abs(selected.x-source.x)<112&&!this.cover.obstruction(source.x,selected.x)){
+    // championTarget already validates physical line of sight using attacker
+    // and target elevation. A second 1D ground-wall check would wrongly veto
+    // melee between fighters above an intact barricade on a gantry.
+    if(Math.abs(selected.x-source.x)<112){
       const slash=this.add.image(source.x+Math.sign(facing)*70,source.y-15,'slash').setDepth(6).setScale(.5);
       this.tweens.add({targets:slash,alpha:0,scale:.85,duration:180,onComplete:()=>slash.destroy()});
       if(selected.kind==='champion')this.hit(selected.id==='hero'?this.player:this.enemy,21,'melee');

@@ -88,3 +88,17 @@ These changes are wired into the live Phaser scene and have deterministic source
 - **No new substitute textures:** all changes rely exclusively on existing approved projectile/defense texture paths. The 17-image checksum gate remains mandatory.
 
 **Verification caveat:** Source-level Node tests, headless seeded matches and JavaScript Vite builds do not prove that the real browser's Arcade physics, textures, sprite proportions, animated combat and frame timing are commercially acceptable. Re-run the strict full Chromium workflows after importing the actual artwork; review screenshots and at least one human-played Windows match.
+
+## 9. Combat balance and special-ability pass — 27 October 2026
+
+The following mechanics have been implemented in the live Phaser scene, the pure combat model and/or seeded 10v10 regression suite:
+
+- **Stacked allied shields:** Two or more paid shield emitters can protect a fighter in overlapping range. Incoming damage is deducted from the nearest living shield first, then additional nearby shields by proximity and stable defense ID. Only the leftover reaches Sentinel interception and finally fighter HP. A fully shielded attack must not consume the Sentinel defensive cooldown.
+- **Sentinel Intercept is defense only:** Only `interceptDamage` may trigger the Intercept reaction. A Sentinel no longer announces `INTERCEPT incoming` as an outgoing strike. Vanguard Cleave and Ranger Precision retain their separate offensive cooldowns.
+- **Vanguard Cleave has real secondary victims:** A telegraphed Vanguard Cleave strikes its primary victim and at most **two additional living enemies** within 65 scene pixels of the primary, the Vanguard's melee attack reach and the same physical elevation. Actual intact barricades block the extra damage. Splash damage equals 60% of the primary hit (minimum one). Neither friendlies nor eliminated units may be hit.
+- **Real damage pipeline maintained:** Cleave splash calls the same `hit` / `hitCompanion` methods as ordinary melee, so shields, Sentinel protection, comeback modifiers, elimination accounting and victory conditions apply to each additional hit.
+- **Simulation parity:** `tests/autonomous-match.test.js` uses the same real Cleave selection and damage functions as the Phaser scene, including its existing deterministic multiple-seed 10v10 coverage.
+
+**Visual acceptance still required:** The original character frames and Cleave VFX must communicate which nearby fighters took damage. Do not use a fabricated swing animation or procedural particle shapes as a stand-in for approved artwork. Once the art pack has been imported, include Cleave crowd hits, simultaneous shield depletion, player feedback and Sentinel protection in human gameplay QA.
+
+Automated Node tests and Vite builds can pass without those original texture files. The mandatory checksum/right-to-use release gate is not waived by this engineering pass.

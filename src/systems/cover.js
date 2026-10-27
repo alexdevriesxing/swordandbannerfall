@@ -5,8 +5,17 @@ export class BattlefieldCover {
   {id:'central-barricade',x:640,width:82,hp:120},
   {id:'east-bulkhead',x:820,width:60,hp:90}
  ]){
-  this.segments=segments.map(s=>({...s,maxHp:s.hp}));
-  for(const s of this.segments)if(!s.id||!Number.isFinite(s.x)||!(s.width>0)||!(s.hp>0))throw new Error('Invalid cover');
+  if(!Array.isArray(segments))throw new Error('Invalid cover');
+  this.segments=segments.map(s=>({...s,maxHp:s?.hp}));
+  const ids=new Set();
+  for(const s of this.segments){
+   if(typeof s.id!=='string'||!s.id.trim()||ids.has(s.id)||
+      !Number.isFinite(s.x)||!Number.isFinite(s.width)||s.width<=0||
+      !Number.isFinite(s.hp)||s.hp<=0||
+      (s.topY!==undefined&&!Number.isFinite(s.topY)))
+    throw new Error('Invalid cover');
+   ids.add(s.id);
+  }
  }
  intact(){return this.segments.filter(s=>s.hp>0);}
  obstruction(from,to){

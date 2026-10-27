@@ -1,0 +1,94 @@
+name: Stage and inspect Sword & Bannerfall v2 art candidates
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: sword-bannerfall-v2-art-intake
+  cancel-in-progress: false
+
+jobs:
+  inspect-candidates:
+    if: >-
+      github.repository == 'alexdevriesxing/swordandbannerfall' &&
+      github.event.issue.number == 2 &&
+      !github.event.issue.pull_request &&
+      github.event.comment.user.login == 'alexdevriesxing'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout current trusted source code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Parse only exact GitHub-generated owner attachment link
+        id: art
+        shell: bash
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          body = os.environ.get('COMMENT_BODY', '')
+          filename = 'Sword_Bannerfall_Art_Pack_v2_Candidates.zip'
+          # Never let arbitrary image URLs or comment shell syntax be executed.
+          urls = re.findall(
+              r'https://github\.com/user-attachments/(?:files/\d+/Sword_Bannerfall_Art_Pack_v2_Candidates\.zip|assets/[a-fA-F0-9-]{36})',
+              body
+          )
+          if len(urls) != 1 or filename not in body:
+              raise SystemExit('Attach exactly one correctly named owner-made v2 art ZIP')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write('url=' + urls[0] + '\n')
+          PY
+
+      - name: Download untrusted ZIP with bounded size
+        shell: bash
+        env:
+          SOURCE_URL: ${{ steps.art.outputs.url }}
+        run: |
+          curl --fail --location --retry 2 --connect-timeout 15 --max-time 120 \
+            --max-filesize 75000000 -o /tmp/sword-art-v2.zip "$SOURCE_URL"
+          test "$(stat -c %s /tmp/sword-art-v2.zip)" -le 75000000
+          test "$(stat -c %s /tmp/sword-art-v2.zip)" -gt 1000
+
+      - name: Securely stage EXACT 17 exports without affecting public assets
+        run: python3 scripts/stage-art-v2-zip.py /tmp/sword-art-v2.zip "$RUNNER_TEMP/sword-v2-review"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify art review intake code against unsafe ZIP fixtures
+        run: python3 -m unittest discover -s tests -p 'test_stage_art_v2_zip.py' -v
+
+      - name: Decode image structures and actual PNG transparent pixels
+        run: |
+          node scripts/review-art-v2.js "$RUNNER_TEMP/sword-v2-review/public/assets" \
+            | tee "$RUNNER_TEMP/sword-v2-review/technical-report.json"
+
+      - name: Create source-only contact sheet for human visual review
+        shell: bash
+        run: |
+          python3 -m pip install --disable-pip-version-check pillow
+          python3 scripts/create-art-v2-review-sheet.py \
+            "$RUNNER_TEMP/sword-v2-review" \
+            "$RUNNER_TEMP/sword-v2-review/contact-sheet.png"
+
+      - name: Publish NON-APPROVED candidate evidence and export bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sword-Bannerfall-v2-art-review-UNAPPROVED
+          path: ${{ runner.temp }}/sword-v2-review
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
+
+# NO commit, no license approval, no v1 overwrite, no release and no commerce.
+# A passing technical review only produces a candidate artifact for art direction
+# and rights review. Browser QA / installer distribution remain separate.

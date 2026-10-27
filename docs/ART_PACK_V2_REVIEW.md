@@ -149,3 +149,21 @@ Five standalone comeback-card generations have been confirmed as completed, each
 `cards/deadeye.png` was requested separately, but a completed, identified media output could **not** be confirmed during this pass. Do not infer it exists from an earlier accepted job. All five above have the correct **source** dimensions but are JPG media references, **not** usable final `public/assets/cards/*.png` exports yet. Their contents, rendering at in-game size and copyright/provenance still require full-resolution inspection. They are neither approved nor committed to the game. The original Citadel, blue Knight and red Raider sources remain separate candidates.
 
 These cards do not require alpha extraction (illustrated square backgrounds are intended), but they do require real PNG exports with correct file signatures, no embedded text/UI, subject clarity, and exact per-export SHA-256 before art approval.
+
+## 27 October — collider placement lock and last comeback-card candidate
+
+The **Deadeye** art-generation pass produced a square 1264×1264 medieval archer/citadel candidate in Canva media `MAHZN5yBs6E`, which was moved to the same [v2 candidate folder](https://www.canva.com/folder/FAHZL3s260c). All six comeback-card illustration *source candidates* are now present in Canva; none has been exported as exact game-image bytes or visually approved at full pixel resolution.
+
+### Preventing new art from silently inheriting old v1 collision alignment
+
+The barricade and gantry have invisible Arcade colliders and depend on precise **visible alpha silhouette** alignment. The original v1 measurements in `src/levels/approved-art-placement.js` were calculated for very specific source PNG dimensions and transparent margins; they must **not** be reused with a new v2 illustration merely because the new PNG passes resolution and alpha checks.
+
+The added `assets/placement-lock.json` binds both original textures' exact SHA-256 hashes and six placement numbers. `scripts/check-placement-lock.js` verifies that:
+
+- the locked measurements exactly match the version used by the Phaser scene;
+- those SHA-256 hashes agree with the current approved `assets/licenses.json` entries;
+- and, when image bytes are present, the actual PNG hashes match the placement lock.
+
+`npm run check:release` now includes this check. **A v2 substitution must update measured bounds, live scene constants, rights entries, and the placement-lock hashes as one reviewed change**. The v2 intake's `scripts/review-art-v2.js` now reports a hash-bound `placement` suggestion for each valid transparent barricade or gantry candidate. That suggestion converts the PNG pixel scanner's inclusive maximum pixels into right/bottom **exclusive** bounds expected by the renderer. It is tagged *MEASURED ONLY* and never auto-applies or approves geometry.
+
+Human visual review of a full-resolution game screenshot and a real collider traversal remains mandatory. This check blocks accidental stale-geometry approval, but is not a substitute for physics validation or production graphics.

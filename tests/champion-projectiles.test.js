@@ -63,3 +63,29 @@ test('elevated shots clear a ground barricade without registering a false hit',(
  const planned=planChampionShot({attacker:elevated,target:upEnemy,cover});
  assert.equal(sweptProjectileContact(planned.origin,{x:1080,y:418},upEnemy,cover)?.kind,'unit');
 });
+
+test('close blue and red champion shots never spawn past the opposing fighter',()=>{
+ for(const [team,x,targetX,sign] of [
+  ['blue',400,413,1],['red',500,489,-1]
+ ]){
+  const attacker={team,x,y:590};
+  const opponent={id:team==='blue'?'enemy':'hero',
+   team:team==='blue'?'red':'blue',x:targetX,y:590,hp:30};
+  const shot=planChampionShot({attacker,target:opponent});
+  assert.ok(shot,'close-range shot is available');
+  assert.ok(sign*(shot.origin.x-x)>=0);
+  assert.ok(sign*(targetX-shot.origin.x)>0,
+   'muzzle must stay in front of shooter but before target');
+  assert.ok(sign*shot.velocity.x>0,
+   'a close-range shot must never travel backwards');
+ }
+});
+test('overlapping target does not produce a stationary champion projectile',()=>{
+ const attacker={team:'blue',x:400,y:590};
+ const target={id:'enemy',team:'red',x:400,y:590,hp:100};
+ const shot=planChampionShot({attacker,target});
+ assert.ok(shot);
+ assert.equal(shot.origin.x,400);
+ assert.ok(shot.velocity.x>0);
+ assert.ok(Math.hypot(shot.velocity.x,shot.velocity.y)>0);
+});

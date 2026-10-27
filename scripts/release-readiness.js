@@ -3,10 +3,11 @@ import {readFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {verifyAssets,REQUIRED_ASSETS} from './verify-assets.js';
+import {checkPlacementLock} from './check-placement-lock.js';
 export function releaseReadiness({root=process.cwd()}={}){
  const result=verifyAssets(resolve(root,'public/assets'));
  const register=resolve(root,'assets/licenses.json');
- const issues=[...result.missing.map(s=>'missing asset: '+s),...result.empty.map(s=>'empty asset: '+s),...result.invalid.map(s=>'invalid asset: '+s)];
+ const issues=[...result.missing.map(s=>'missing asset: '+s),...result.empty.map(s=>'empty asset: '+s),...result.invalid.map(s=>'invalid asset: '+s),...checkPlacementLock({root})];
  if(!existsSync(register))issues.push('missing asset rights register: assets/licenses.json');
  else{
   try{

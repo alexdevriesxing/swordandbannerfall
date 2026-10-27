@@ -105,3 +105,31 @@ python scripts/create-art-v2-review-sheet.py /tmp/bf-v2 /tmp/bf-v2/contact-sheet
 ```
 
 The default (without `--partial`) deliberately **still requires all 17 files** in both the ZIP staging command and structural reviewer, preventing accidental promotion of a partial batch into the finished-game release. Each submission produces its own unapproved evidence; nothing is silently merged or committed. The immutable original v1 lock, the actual production assets, the real studio logo, the user rights register, game installer and checkout stay unchanged.
+
+## 27 October — exported-source packager and comeback-card candidates
+
+The standalone **War Cry** illustration finished as Canva media `MAHZN0oD3lA` with a **1264×1264 JPG** source, and was moved into the [v2 review folder](https://www.canva.com/folder/FAHZL3s260c). Its source dimensions exceed the 512×512 card requirement, but **its actual exported pixels have not been retrieved or visually inspected at full resolution**, so `cards/war-cry.png` remains unapproved. A card must be exported to an actual PNG file (not renamed JPG), preserving correct proportions and subject placement.
+
+Five additional distinct card illustration generations were submitted through Canva as source candidates: **Shieldwall, Swift March, Field Medics, War Chest, and Deadeye**. Submission is not evidence of finished or approved exports. Keep each artwork distinct, square, text-free and individually exported; avoid baked card borders or UI that the game already draws.
+
+### Packaging individually exported images without renaming bytes
+
+A safe owner-side command now builds the exact GitHub Issue #2 ZIP from a simple mapping file. Create a local JSON file named `my-v2-art-sources.json` containing **only the exports already finished**, for example:
+
+```json
+{
+  "fighters/knight.png": "C:/Users/YourName/Downloads/knight-transparent-export.png",
+  "fighters/raider.png": "C:/Users/YourName/Downloads/raider-transparent-export.png",
+  "cards/war-cry.png": "C:/Users/YourName/Downloads/war-cry-export.png"
+}
+```
+
+The right-hand entries are **examples of file locations, not files claimed to exist**. They must refer to the exact locally downloaded original-resolution PNG/WebP exports. To create the intake ZIP on Windows:
+
+```powershell
+python scripts/package-art-v2-candidates.py my-v2-art-sources.json Sword_Bannerfall_Art_Pack_v2_Candidates.zip
+```
+
+This command verifies known runtime names, file presence, plausible size and actual PNG/WebP signatures; it **does not** transform/re-export art, resize to invent detail, pretend a JPG is a PNG, or update approved production artwork. It rejects existing output ZIPs rather than overwriting them. Attach the resulting ZIP to the [v2 review Issue #2](https://github.com/alexdevriesxing/swordandbannerfall/issues/2) from the owner account. The automated, non-destructive intake then checks pixel dimensions, PNG decoded alpha, format and SHA-256. All commercial art approvals still require human visual evaluation and live gameplay QA.
+
+The packager is deliberately separate from the old v1 checksum lock and is covered by its own automated security tests.

@@ -14,11 +14,11 @@ export const ART_V2_ALPHA=Object.freeze([
  'fx/projectile.png','fx/slash.png',
  'defenses/trap.png','defenses/turret.png','defenses/shield.png'
 ]);
-export function reviewArtV2(directory){
+export function reviewArtV2(directory,{allowPartial=false}={}){
  const root=resolve(directory);
  const structure=verifyAssets(root,ART_V2_REQUIRED);
  const issues=[
-  ...structure.missing.map(path=>'missing: '+path),
+  ...(!allowPartial?structure.missing.map(path=>'missing: '+path):[]),
   ...structure.empty.map(path=>'empty: '+path),
   ...structure.invalid.map(path=>'invalid image/dimensions: '+path)
  ];
@@ -36,19 +36,22 @@ export function reviewArtV2(directory){
    issues.push('unusable sprite transparency ('+alpha.reason+'): '+path);
   assets[path]={sha256,bytes:bytes.length,alpha};
  }
+ const presentCount=ART_V2_REQUIRED.length-structure.missing.length;
+ if(presentCount===0)issues.push('empty candidate: submit at least one original texture');
  return {candidate:'Sword_Bannerfall_Art_Pack_v2',assetRoot:root,
-  requiredCount:ART_V2_REQUIRED.length,presentCount:Object.keys(assets).length,
-  technicalPass:issues.length===0,issues,assets,
+  requiredCount:ART_V2_REQUIRED.length,presentCount,complete:structure.missing.length===0,
+  missing:structure.missing,technicalPass:issues.length===0,issues,assets,
   approval:'NOT APPROVED — requires manual visual rights and live Phaser review',
   source:'Do not transplant old v1 hashes or mutate assets/licenses.json automatically'};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const dir=process.argv[2];
- if(!dir||!existsSync(dir)){
-  console.error('Usage: node scripts/review-art-v2.js PATH_TO_V2_PUBLIC_ASSETS');
+ const allowPartial=process.argv[3]==='--partial'&&process.argv.length===4;
+ if(!dir||!existsSync(dir)||(process.argv.length>3&&!allowPartial)){
+  console.error('Usage: node scripts/review-art-v2.js PATH_TO_V2_PUBLIC_ASSETS [--partial]');
   process.exitCode=2;
  }else{
-  const report=reviewArtV2(dir);
+  const report=reviewArtV2(dir,{allowPartial});
   console.log(JSON.stringify(report,null,2));
   if(!report.technicalPass)process.exitCode=1;
  }

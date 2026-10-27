@@ -54,3 +54,17 @@ A candidate must pass **all** of the following before the delegated project revi
 Do not delete the v1 lock, remove the old import guard, or alter the existing license approvals just to make a build green. Treat the new completed exports as **v2 candidates** until reviewed. Create a new source/export manifest with the actual v2 SHA-256 checksums and source provenance. Only after all 17 candidate exports pass review, atomically commit: 17 images, v2 source/texture hashes, the reviewed rights register, and verified alpha-placement constants. Archive/relabel the old v1 importer as legacy if the project officially switches packs. Never invoke the legacy v1 issue workflow on a differently generated v2 archive.
 
 **Current release verdict:** blocked on isolated production art exports, full graphical validation, production character animation, licensed production sound/music, Windows QA and storefront integration. CI success on JS code does not override this verdict.
+
+## 27 October follow-up — candidate files and technical review refinement
+
+The connected Canva account contains a dedicated candidate folder: [Sword & Bannerfall — Art Pack v2 Candidates (Unapproved)](https://www.canva.com/folder/FAHZL3s260c). The **source** Iron Citadel background and the original blue Knight image were successfully filed there. The transparent-background Knight derivative remains accessible separately as Canva media `MAHZL3DIzLE`; Canva rejected the attempt to move this derivative into that folder, so no overwrite or surrogate asset was made.
+
+The two source media IDs are `MAHZL9-eGG8` (Citadel, 1680×944 JPG) and `MAHZL_j8s_k` (Knight, 1264×1264 JPG). The Knight derivative was created via Canva's background-removal workflow, but **no export PNG bytes were obtained for local visual/pixel QA**. Neither image is approved for the runtime inventory yet. The Citadel JPG is below the authored 1920×1080 minimum.
+
+A second source-generation request for a single red Raider was submitted as a Canva image-generation job, with no downloaded result yet. Do not treat job receipt, a thumbnail, or auto-polling UI as delivered files or a pass of technical QA.
+
+### Updated strict v2 technical gate
+
+Run `npm run art:review-v2 -- /absolute/path/to/v2/assets` on exported image bytes. `scripts/review-art-v2.js` now uses `scripts/inspect-png-alpha.js` to **decompress and inspect the actual PNG alpha pixels** of nine isolated characters, props and effects. The review conservatively requires PNG RGBA/grayscale+alpha 8-bit noninterlaced exports, both visible and transparent pixels, and at least three transparent corners. It rejects fully opaque RGBA files with painted white backgrounds, completely empty transparent canvases and obvious rectangular matte edges, even if the PNG declares an alpha channel. Paletted/interlaced exports need an explicit conversion followed by repeat visual review.
+
+This structural and alpha scan does **not** establish correct anatomy, high-resolution quality, rights clearance or a successful rendered in-game frame; per-asset manual visual approval remains necessary. Production `assets/licenses.json` and v1 checksums remain untouched.

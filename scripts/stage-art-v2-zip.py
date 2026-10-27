@@ -19,7 +19,7 @@ MAX_RATIO = 300
 PREFIX = "public/assets/"
 
 
-def stage(archive_name: str, destination: str) -> dict:
+def stage(archive_name: str, destination: str, allow_partial: bool = False) -> dict:
     archive_path, target = Path(archive_name), Path(destination).resolve()
     if not archive_path.is_file() or archive_path.stat().st_size > MAX_ZIP_BYTES:
         raise ValueError("Candidate ZIP missing or exceeds 75 MB")
@@ -29,8 +29,8 @@ def stage(archive_name: str, destination: str) -> dict:
     payloads: dict[str, bytes] = {}
     with zipfile.ZipFile(archive_path) as archive:
         files = [item for item in archive.infolist() if not item.is_dir()]
-        if len(files) != len(expected):
-            raise ValueError("Archive must contain exactly 17 files; no metadata or extras")
+        if not files or len(files) > len(expected) or (not allow_partial and len(files) != len(expected)):
+            raise ValueError("Archive must contain 1-17 candidate files (or exactly 17 without --partial)")
         cumulative = 0
         for item in files:
             name = item.filename
@@ -59,7 +59,7 @@ def stage(archive_name: str, destination: str) -> dict:
             if len(data) != item.file_size:
                 raise ValueError(f"Incorrect decoded size for {relative}")
             payloads[relative] = data
-    if set(payloads) != expected:
+    if not allow_partial and set(payloads) != expected:
         raise ValueError(f"Incomplete candidate; missing {sorted(expected-set(payloads))}")
 
     # Stage in an isolated folder, never touching public/assets or v1 locks.
@@ -67,6 +67,10 @@ def stage(archive_name: str, destination: str) -> dict:
     report = {"version": "Sword_Bannerfall_Art_Pack_v2",
               "decision": "UNAPPROVED - candidate technical intake only",
               "archive_sha256": hashlib.sha256(archive_path.read_bytes()).hexdigest(),
+              "complete": set(payloads) == expected,
+              "missing": sorted(expected - set(payloads)),
+              "submittedCount": len(payloads),
+              "requiredCount": len(expected),
               "textures": {}}
     # Refuse a pre-existing staging folder rather than mix two candidate sets.
     if target.exists():
@@ -84,9 +88,9 @@ def stage(archive_name: str, destination: str) -> dict:
 
 if __name__ == "__main__":
     try:
-        if len(sys.argv) != 3:
-            raise ValueError("Usage: python scripts/stage-art-v2-zip.py ART_ZIP CLEAN_STAGING_DIR")
-        report = stage(sys.argv[1], sys.argv[2])
+        if len(sys.argv) not in (3, 4) or (len(sys.argv) == 4 and sys.argv[3] != "--partial"):
+            raise ValueError("Usage: python scripts/stage-art-v2-zip.py ART_ZIP CLEAN_STAGING_DIR [--partial]")
+        report = stage(sys.argv[1], sys.argv[2], allow_partial=len(sys.argv) == 4)
         print(f"Staged {len(report['textures'])} unapproved candidate images. No production assets changed.")
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
         print("Candidate intake rejected:", exc, file=sys.stderr)

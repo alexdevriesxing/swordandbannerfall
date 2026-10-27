@@ -90,3 +90,18 @@ python scripts/create-art-v2-review-sheet.py /tmp/bf-v2 /tmp/bf-v2/contact-sheet
 ```
 
 The local contact-sheet command requires Pillow. Only after source inspection and successful in-engine screenshots may the delegated art director approve any exact runtime file, update the v2 source/output manifest and the rights register, or commit binary game assets. **A successful intake action does not perform these approval steps automatically.**
+
+## 27 October — incremental batch review enabled
+
+**Revision to the previous all-17 requirement:** the owner-only GitHub Issue #2 reviewer now accepts a nonempty ZIP containing **any 1–17** of the listed original export paths, with no other files or branding. The same original filename `Sword_Bannerfall_Art_Pack_v2_Candidates.zip` is used for each independent owner-submitted batch. This allows blue Knight, red Raider and subsequent standalone exports to be inspected immediately without creating stand-in textures for unfinished parts.
+
+The secure ZIP stage records `submittedCount`, `requiredCount=17`, `complete`, and `missing` in the generated JSON manifest. Running `node scripts/review-art-v2.js FOLDER --partial` validates only the submitted candidates while preserving a visible list of every missing image. TechnicalPass on a *partial* subset means merely that those submitted files passed this technical check: it never changes the `approval: NOT APPROVED` result, never authorizes publication and never satisfies `npm run check:release`.
+
+For standalone local review:
+```bash
+python scripts/stage-art-v2-zip.py Sword_Bannerfall_Art_Pack_v2_Candidates.zip /tmp/bf-v2 --partial
+npm run art:review-v2 -- /tmp/bf-v2/public/assets --partial
+python scripts/create-art-v2-review-sheet.py /tmp/bf-v2 /tmp/bf-v2/contact-sheet.png
+```
+
+The default (without `--partial`) deliberately **still requires all 17 files** in both the ZIP staging command and structural reviewer, preventing accidental promotion of a partial batch into the finished-game release. Each submission produces its own unapproved evidence; nothing is silently merged or committed. The immutable original v1 lock, the actual production assets, the real studio logo, the user rights register, game installer and checkout stay unchanged.

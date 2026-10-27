@@ -64,11 +64,22 @@ export function meleeAssaultGoal(unit,target,goal,{left=50,right=1230}={}){
  * to the enemy. This changes movement only; damage interception is handled
  * separately by the existing cooldown-based defensive ability.
  */
-export function sentinelEscortGoal(unit,target,allies,goal,{threshold=0.6,gap=38,left=50,right=1230}={}){
- if(unit?.role!=='sentinel'||!target||!Number.isFinite(target.x))return goal;
+export function sentinelEscortGoal(unit,target,allies,goal,{
+ threshold=0.6,gap=38,maxDistance=600,maxElevation=65,left=50,right=1230
+}={}){
+ if(unit?.role!=='sentinel'||!target||!Number.isFinite(target.x)||!
+  Number.isFinite(unit.x))return goal;
+ if(![threshold,gap,maxDistance,maxElevation].every(Number.isFinite)||
+   threshold<=0||threshold>1||gap<0||maxDistance<=0||maxElevation<0)
+   throw new RangeError('Invalid Sentinel escort configuration');
+ // The Sentinel cannot instantly project protection across an entire arena
+ // or from a distant gantry. Select only reachable nearby wounded Vanguards.
+ const unitY=unit.y??590;
  const threatened=allies.filter(a=>a.team===unit.team&&a.id!==unit.id&&
   a.hp>0&&a.role==='vanguard'&&Number.isFinite(a.maxHp)&&a.maxHp>0&&
-  a.hp/a.maxHp<threshold&&Number.isFinite(a.x));
+  a.hp/a.maxHp<threshold&&Number.isFinite(a.x)&&
+  Math.abs(a.x-unit.x)<=maxDistance&&
+  Number.isFinite(a.y??590)&&Math.abs((a.y??590)-unitY)<=maxElevation);
  if(!threatened.length)return goal;
  threatened.sort((a,b)=>(a.hp/a.maxHp-b.hp/b.maxHp)||a.id-b.id);
  const ally=threatened[0];

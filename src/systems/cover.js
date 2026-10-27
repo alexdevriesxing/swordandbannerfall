@@ -14,6 +14,27 @@ export class BattlefieldCover {
   return this.intact().filter(s=>s.x+s.width/2>left&&s.x-s.width/2<right)
    .sort((a,b)=>Math.abs(a.x-from)-Math.abs(b.x-from)||a.id.localeCompare(b.id))[0]??null;
  }
+ // Only cover intersecting a fighter's actual vertical footprint can
+ // obstruct its movement. A soldier walking ABOVE a barricade on an authored
+ // gantry must not collide with the ground wall's 1D horizontal footprint.
+ obstructionAtHeight(from,to,feetY,{defaultTopY=517.5}={}){
+  if(![from,to,feetY,defaultTopY].every(Number.isFinite))
+   throw new RangeError('Invalid cover traversal');
+  const left=Math.min(from,to),right=Math.max(from,to);
+  return this.intact().filter(s=>
+   feetY>=(s.topY??defaultTopY) &&
+   s.x+s.width/2>left&&s.x-s.width/2<right
+  ).sort((a,b)=>Math.abs(a.x-from)-Math.abs(b.x-from)||
+   String(a.id).localeCompare(String(b.id)))[0]??null;
+ }
+ approachAtHeight(from,to,feetY,standoff=35){
+  if(!Number.isFinite(standoff)||standoff<0)
+   throw new RangeError('Invalid cover standoff');
+  const block=this.obstructionAtHeight(from,to,feetY);
+  if(!block)return to;
+  const dir=Math.sign(to-from);
+  return block.x-dir*(block.width/2+standoff);
+ }
  damage(id,amount){
   if(!Number.isFinite(amount)||amount<0)throw new RangeError('Invalid damage');
   const s=this.segments.find(x=>x.id===id);

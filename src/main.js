@@ -21,6 +21,7 @@ import { planCompanionShot, planCompanionCoverShot } from './systems/companion-p
 import { planTurretShot } from './systems/turret-projectiles.js';
 import { cleaveSplashTargets, cleaveSplashDamage } from './systems/cleave.js';
 import { MatchStatistics, matchStatSummary } from './systems/match-statistics.js';
+import { pauseHelp } from './systems/pause-help.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
@@ -74,12 +75,16 @@ class Boot extends Phaser.Scene {
 class PauseMenu extends Phaser.Scene {
   constructor(){super('PauseMenu');}
   create(){
-    this.add.text(640,310,
-      'SWORD & BANNERFALL\n\nPAUSED\n\nESC OR CONTROLLER BACK TO RESUME',{
-      fontFamily:'system-ui',fontSize:'33px',fontStyle:'bold',
+    const arena=this.scene.get('Arena');
+    const instructions=pauseHelp({
+      localTwoPlayer:arena?.controlMode?.localTwoPlayer??false
+    });
+    this.add.text(640,350,
+      'SWORD & BANNERFALL — PAUSED\n\n'+instructions,{
+      fontFamily:'system-ui',fontSize:'20px',fontStyle:'bold',
       color:'#ffffff',align:'center',
-      backgroundColor:'#101722f5',padding:{x:75,y:50},
-      lineSpacing:13
+      backgroundColor:'#101722f5',padding:{x:28,y:24},
+      lineSpacing:8
     }).setOrigin(.5).setScrollFactor(0).setDepth(200);
     let closing=false;
     const resume=()=>{

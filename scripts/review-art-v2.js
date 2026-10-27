@@ -37,7 +37,7 @@ export function reviewArtV2(directory,{allowPartial=false}={}){
   assets[path]={sha256,bytes:bytes.length,alpha};
  }
  const presentCount=ART_V2_REQUIRED.length-structure.missing.length;
- if(presentCount===0)issues.push('empty candidate: submit at least one original texture');
+ if(allowPartial&&presentCount===0)issues.push('empty candidate: submit at least one original texture');
  return {candidate:'Sword_Bannerfall_Art_Pack_v2',assetRoot:root,
   requiredCount:ART_V2_REQUIRED.length,presentCount,complete:structure.missing.length===0,
   missing:structure.missing,technicalPass:issues.length===0,issues,assets,

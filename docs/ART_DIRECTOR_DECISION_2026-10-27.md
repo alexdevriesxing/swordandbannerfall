@@ -45,3 +45,12 @@
 7. Commit the actual binaries together with the exact v2 license register, then require strict release readiness, automated tests, build, real browser QA and screenshots.
 
 **Current release approval: DENIED.** The software's existing green CI indicates code health only. The missing texture binaries, authored animations, audio and full human-in-the-loop graphical QA must be completed before commercial release. This decision can be revisited as each exact asset becomes available; owner consent to approve does not itself demonstrate passing asset quality.
+
+## 27 October — individual media recovery and alpha extraction
+
+A direct inspection of the connected Canva image library recovered two independently generated art candidates, neither part of the five promotional composites:
+
+- `MAHZL9-eGG8` — Iron Citadel background candidate, native **1680×944 JPG**, below the required 1920×1080 WebP runtime export. **Decision: concept/source accepted for further preparation, runtime approval withheld** pending correctly sized and inspected source export. Scaling alone is not proof of additional native detail.
+- `MAHZL_j8s_k` — isolated blue Knight candidate, native **1264×1264 JPG**. Canva's background-removal operation produced new media **`MAHZL3DIzLE`**, 1264×1264; this derivative is designated the transparent fighter candidate. **Decision: pending** full-resolution inspection of actual alpha pixels, cropping, silhouette, orientation, and rendering at 45×65 in-game. The successful operation does not prove those checks passed.
+
+Neither file has been uploaded to GitHub, so neither has a reproducible source/export SHA-256 in this repository. Do not mark either approved in `assets/licenses.json`, overwrite the old original-pack locks, or declare the browser game playable based on these Canva metadata records. Both media IDs belong to the user's Canva account.

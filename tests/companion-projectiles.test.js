@@ -25,3 +25,24 @@ test('shot can target an enemy champion and preserve the assigned target id',()=
  assert.equal(shot.targetId,'enemy');
  assert.equal(shot.damage,19);
 });
+
+test('close-range Ranger shots remain in front of shooter and before target',()=>{
+ for(const [team,x,tx,sign] of [
+  ['blue',200,214,1],['red',700,686,-1]
+ ]){
+  const attacker={id:1,role:'ranger',team,x,y:590,hp:45};
+  const target={id:2,team:team==='blue'?'red':'blue',x:tx,y:590,hp:45};
+  const shot=planCompanionShot({attacker,target,damage:9});
+  assert.ok(shot);
+  assert.ok(sign*(shot.origin.x-x)>=0);
+  assert.ok(sign*(tx-shot.origin.x)>0);
+  assert.ok(sign*shot.velocity.x>0);
+ }
+});
+test('Ranger can still fire if its selected opponent overlaps its center',()=>{
+ const attacker={...ranger,x:200,y:590};
+ const target={id:2,team:'red',x:200,y:590,hp:40};
+ const shot=planCompanionShot({attacker,target,damage:9});
+ assert.ok(shot);
+ assert.ok(shot.velocity.x>0);
+});

@@ -27,3 +27,27 @@ test('first barricade encountered along the travel direction takes damage first'
  c.damage(first.id,first.hp);
  assert.equal(c.obstruction(900,200).id,'central-barricade');
 });
+
+test('authored cover rejects duplicate IDs before rendering or physics registration',()=>{
+ assert.throws(()=>new BattlefieldCover([
+  {id:'shared',x:400,width:80,hp:60},
+  {id:'shared',x:700,width:80,hp:90}
+ ]),/Invalid cover/);
+});
+
+test('invalid wall sizes, collision tops and durability cannot enter a match',()=>{
+ const base={id:'wall',x:500,width:80,hp:80};
+ for(const bad of [
+  {...base,width:Infinity},{...base,width:NaN},{...base,hp:Infinity},
+  {...base,hp:0},{...base,topY:NaN},{...base,topY:Infinity},
+  {...base,id:''}
+ ])assert.throws(()=>new BattlefieldCover([bad]),/Invalid cover/);
+});
+
+test('valid authored elevated cover with custom top survives snapshot and damage',()=>{
+ const cover=new BattlefieldCover([{id:'rampart',x:820,width:60,hp:90,topY:430}]);
+ assert.equal(cover.snapshot()[0].topY,430);
+ assert.equal(cover.obstructionAtHeight(900,780,477.5)?.id,'rampart');
+ assert.deepEqual(cover.damage('rampart',90),{applied:90,destroyed:true});
+ assert.equal(cover.obstructionAtHeight(900,780,477.5),null);
+});

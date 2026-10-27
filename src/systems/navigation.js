@@ -5,7 +5,12 @@ export function jumpPlan(unit,goal,cover,{maxWidth=90,cooldownMs=2600,timeMs=0}=
  if(!cover||!Number.isFinite(goal)||Math.abs(goal-unit.x)<10)return null;
  if(unit.jump&&unit.jump.active)return null;
  if(timeMs<(unit.nextJumpAt??0))return null;
- const block=cover.obstruction(unit.x,goal);
+ // Elevated units cannot hop a wall which is physically below their feet.
+ // Use the same silhouette height as the companion movement collision.
+ const feetY=(unit.y??GROUND_Y)+32.5;
+ const block=typeof cover.obstructionAtHeight==='function'
+  ?cover.obstructionAtHeight(unit.x,goal,feetY)
+  :cover.obstruction(unit.x,goal);
  if(!block||block.width>maxWidth)return null;
  const dir=Math.sign(goal-unit.x);
  if(Math.abs(unit.x-(block.x-dir*(block.width/2+35)))>48)return null;

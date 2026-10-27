@@ -19,6 +19,7 @@ import { planChampionShot } from './systems/champion-projectiles.js';
 import { sweptProjectileContact } from './systems/projectile-impact.js';
 import { planCompanionShot, planCompanionCoverShot } from './systems/companion-projectiles.js';
 import { planTurretShot } from './systems/turret-projectiles.js';
+import { cleaveSplashTargets, cleaveSplashDamage } from './systems/cleave.js';
 import { PlatformRoutes } from './systems/platform-routes.js';
 import { enemyChampionDecision } from './systems/enemy-champion.js';
 import { matchResultView } from './systems/match-summary.js';
@@ -710,6 +711,15 @@ class Arena extends Phaser.Scene {
         this.fireCompanion(attacker,{...resolved,id:attack.target},attack.damage);
         continue;
       }
+      // A VANGUARD CLEAVE telegraph targets up to two nearby opponents as
+      // well as its primary victim. Snapshot them before applying the first
+      // hit, since eliminations may change the live roster immediately.
+      const splash=attacker.role==='vanguard'?cleaveSplashTargets(
+        attacker,{...resolved,id:attack.target},[
+          {id:'hero',team:'blue',x:p.x,y:p.y,hp:this.director.fighters.hero.hp},
+          {id:'enemy',team:'red',x:e.x,y:e.y,hp:this.director.fighters.enemy.hp},
+          ...this.companions.units.filter(u=>u.hp>0)
+        ],{range:attacker.range,cover:this.cover}):[];
       if(attack.target==='hero'||attack.target==='enemy'){
         const target=attack.target==='hero'?p:e;
         if(target.active)this.hit(target,attack.damage,'melee');
@@ -717,9 +727,18 @@ class Arena extends Phaser.Scene {
         const victim=this.companions.units.find(u=>u.id===attack.target);
         if(!victim||victim.hp<=0)continue;
         this.hitCompanion(victim,attack.damage,time);
-        if(this.match.phase==='finished')return;
       }
       if(this.match.phase==='finished')return;
+      for(const foe of splash){
+        if(foe.id==='hero'||foe.id==='enemy'){
+          const victim=foe.id==='hero'?p:e;
+          if(victim.active)this.hit(victim,cleaveSplashDamage(attack.damage),'melee');
+        }else{
+          const victim=this.companions.units.find(u=>u.id===foe.id&&u.hp>0);
+          if(victim)this.hitCompanion(victim,cleaveSplashDamage(attack.damage),time);
+        }
+        if(this.match.phase==='finished')return;
+      }
     }
     for(const action of aiActions){
       if(action.type==='move'){const visual=this.companionSprites.get(action.id);if(visual){visual.x=action.x;visual.y=action.y??590;}const unit=this.companions.units.find(u=>u.id===action.id);const label=this.healthLabels.get(action.id);if(label&&unit){label.x=action.x;label.y=(action.y??590)-54;label.setText(healthLabel(unit.hp,unit.maxHp));}}

@@ -73,3 +73,42 @@ test('surviving escorts continue fighting after their champion is eliminated', (
   assert.ok(blue.some((u, i) => u.x > positions[i]));
   assert.equal(director.orders.blue, 'guard');
 });
+
+test('multiple wounded escorts continue to engage after their champion falls',()=>{
+ const director=new CompanionDirector({maxPerTeam:3});
+ const first=director.add('blue',200,{role:'vanguard'});
+ const second=director.add('blue',210,{role:'vanguard'});
+ director.add('red',250,{role:'vanguard'});
+ director.wound(first.id,70);
+ director.wound(second.id,70);
+ director.command('blue','guard');
+ const fallenCaptains={
+  blue:{team:'blue',x:180,y:590,hp:0},
+  red:{team:'red',x:1100,y:590,hp:0}
+ };
+ const actions=director.update(1000,100,fallenCaptains);
+ assert.ok(director.units.find(u=>u.id===first.id).x>200,
+  'injured survivor must advance instead of infinitely retreating');
+ assert.ok(director.units.find(u=>u.id===second.id).x>210,
+  'second injured survivor must join last-stand combat');
+ assert.ok(actions.some(a=>a.type==='attack'&&a.id===first.id));
+ assert.ok(actions.some(a=>a.type==='attack'&&a.id===second.id));
+ assert.equal(director.orders.blue,'guard',
+  'emergency Hunt is runtime behavior, not permanent player-order mutation');
+});
+
+test('wounded escorts can still withdraw while their captain is alive',()=>{
+ const director=new CompanionDirector();
+ const unit=director.add('blue',200,{role:'vanguard'});
+ director.add('red',250,{role:'vanguard'});
+ director.wound(unit.id,70);
+ director.command('blue','hunt');
+ const captains={
+  blue:{team:'blue',x:180,y:590,hp:100},
+  red:{team:'red',x:1100,y:590,hp:100}
+ };
+ const actions=director.update(1000,100,captains);
+ assert.ok(director.units.find(u=>u.id===unit.id).x<200,
+  'critical-HP fighter should withdraw if their captain can cover retreat');
+ assert.equal(actions.some(a=>a.type==='attack'&&a.id===unit.id),false);
+});

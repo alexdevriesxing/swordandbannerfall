@@ -13,8 +13,12 @@ export function planCompanionShot({attacker,target,damage,cover=null,speed=650}=
  if(!combatElevation(attacker,target).ranged)return null;
  if(shotObstruction(cover,{x:attacker.x,y:attacker.y-17},{x:target.x,y:target.y-17}))return null;
  const direction=Math.sign(target.x-attacker.x)||(attacker.team==='blue'?1:-1);
- const origin={x:attacker.x+direction*24,y:attacker.y-17};
+ // Keep close-range bolts on the shooter's side of their target.
+ const muzzle=Math.min(24,Math.max(0,Math.abs(target.x-attacker.x)-4));
+ const origin={x:attacker.x+direction*muzzle,y:attacker.y-17};
  const destination={x:target.x,y:target.y-17};
+ if(destination.x===origin.x&&destination.y===origin.y)
+  destination.x+=direction*50;
  const velocity=aimVelocity(origin,destination,speed);
  if(velocity.x===0&&velocity.y===0)return null;
  return {origin,velocity,targetId:target.id,team:attacker.team,damage};

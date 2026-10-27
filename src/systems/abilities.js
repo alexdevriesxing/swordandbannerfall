@@ -5,7 +5,11 @@ export const ABILITIES=Object.freeze({
  sentinel:{id:'intercept',cooldownMs:6500,bonusDamage:0}
 });
 export function specialAttack(unit,timeMs){
- const spec=ABILITIES[unit.role];
+ // Intercept is a defensive reaction fired only by interceptDamage().
+ // Treating it as an offensive windup made Sentinels announce an incoming
+ // "INTERCEPT" attack and consume an unrelated offensive ability cooldown.
+ if(unit?.role==='sentinel')return null;
+ const spec=ABILITIES[unit?.role];
  if(!spec||timeMs-(unit.lastAbility??-Infinity)<spec.cooldownMs)return null;
  unit.lastAbility=timeMs;
  return {ability:spec.id,bonusDamage:spec.bonusDamage};

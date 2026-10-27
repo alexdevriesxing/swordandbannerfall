@@ -54,3 +54,30 @@ test('guard, patrol, hunt rotate',()=>{
  game.cycleCommand('hero');assert.equal(game.fighters.hero.command,'hunt');
  game.cycleCommand('hero');assert.equal(game.fighters.hero.command,'guard');
 });
+
+test('finishing hit reports only actual champion HP removed',()=>{
+ const game=new CombatDirector();
+ game.fighters.hero.hp=3;
+ assert.deepEqual(game.damage('hero',100,'melee'),{applied:3,ko:true});
+ assert.equal(game.fighters.hero.hp,0);
+ assert.deepEqual(game.damage('hero',100,'melee'),{applied:0,ko:false});
+});
+test('overkill is symmetric and works after armor and guard mitigation',()=>{
+ const game=new CombatDirector();
+ game.fighters.enemy.hp=6;
+ game.setStance('enemy','guard');
+ assert.deepEqual(game.damage('enemy',100,'ranged'),{applied:6,ko:true});
+ assert.equal(game.fighters.enemy.hp,0);
+});
+test('zero damage never knocks out or consumes a champion HP',()=>{
+ const game=new CombatDirector();
+ game.fighters.hero.hp=1;
+ assert.deepEqual(game.damage('hero',0),{applied:0,ko:false});
+ assert.equal(game.fighters.hero.hp,1);
+});
+test('multiple nonlethal hits report actual damage and do not alter opponent',()=>{
+ const game=new CombatDirector();
+ assert.deepEqual(game.damage('hero',17,'ranged'),{applied:17,ko:false});
+ assert.equal(game.fighters.hero.hp,83);
+ assert.equal(game.fighters.enemy.hp,100);
+});

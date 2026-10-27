@@ -70,13 +70,15 @@ test('critically wounded last escort fights instead of retreating indefinitely',
  const actions=director.update(1000,100,champions);
  assert.ok(actions.some(a=>a.type==='attack'&&a.id===fighter.id));
 });
-test('wounded escort still retreats if team has another living companion',()=>{
+test('wounded ranged escort supports its squad after the champion falls',()=>{
  const director=new CompanionDirector();
  const wounded=director.add('blue',500,{role:'ranger'});
  director.add('blue',300,{role:'vanguard'});
  director.wound(wounded.id,42);
  const champions={blue:{team:'blue',x:70,hp:0},red:{team:'red',x:675,hp:100}};
  const actions=director.update(1000,100,champions);
- assert.equal(actions.some(a=>a.type==='attack'&&a.id===wounded.id),false);
- assert.ok(director.units.find(u=>u.id===wounded.id).x<500);
+ // Ranger can maintain its distance but must not silently stop shooting just
+ // because another living squadmate exists. That created perpetual stalemates.
+ assert.ok(actions.some(a=>a.type==='attack'&&a.id===wounded.id));
+ assert.equal(director.orders.blue,'guard');
 });

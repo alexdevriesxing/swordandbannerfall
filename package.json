@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "node --test",
     "check:assets": "node scripts/verify-assets.js",
+    "art:review-v2": "node scripts/review-art-v2.js",
     "check:release": "node scripts/release-readiness.js",
     "test:match": "node --test tests/autonomous-match.test.js tests/match-summary.test.js",
     "assets:import-branding": "node scripts/import-official-branding.js",

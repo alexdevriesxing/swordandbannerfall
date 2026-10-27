@@ -73,5 +73,41 @@ class CandidateArchiveSafety(unittest.TestCase):
             module.stage(str(self.archive), str(self.output))
 
 
+
+    def test_partial_candidate_stages_only_submitted_art_and_lists_remaining(self):
+        files = {
+            "public/assets/fighters/knight.png": b"candidate knight fixture",
+            "public/assets/fighters/raider.png": b"candidate raider fixture",
+        }
+        make_archive(self.archive, files)
+        result = module.stage(str(self.archive), str(self.output), allow_partial=True)
+        self.assertEqual(result["submittedCount"], 2)
+        self.assertEqual(result["requiredCount"], 17)
+        self.assertEqual(len(result["missing"]), 15)
+        self.assertFalse(result["complete"])
+        self.assertIn("UNAPPROVED", result["decision"])
+        self.assertFalse((self.output / "public" / "assets" / "branding").exists())
+
+    def test_partial_candidate_rejects_zero_or_unlisted_files(self):
+        make_archive(self.archive, {})
+        with self.assertRaisesRegex(ValueError, "1-17"):
+            module.stage(str(self.archive), str(self.output), allow_partial=True)
+        self.assertFalse(self.output.exists())
+        make_archive(self.archive, {"public/assets/branding/fire-dragon-interactive.png": b"fake"})
+        with self.assertRaisesRegex(ValueError, "Forbidden archive entry"):
+            module.stage(str(self.archive), str(self.output), allow_partial=True)
+        self.assertFalse(self.output.exists())
+
+    def test_partial_candidate_still_rejects_path_traversal_and_duplicates(self):
+        for entries, extra in [
+            ({"public/assets/fighters/../knight.png": b"attack"}, ()),
+            ({"public/assets/fighters/knight.png": b"good"}, [
+                ("public/assets/fighters/knight.png", b"duplicate")]),
+        ]:
+            make_archive(self.archive, entries, extra=extra)
+            with self.assertRaisesRegex(ValueError, "Forbidden archive entry|Duplicate asset path"):
+                module.stage(str(self.archive), str(self.output), allow_partial=True)
+            self.assertFalse(self.output.exists())
+
 if __name__ == "__main__":
     unittest.main()

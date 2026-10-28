@@ -21,8 +21,11 @@ export function planChampionShot({
   const originY=attacker.y-17;
   const destination={x:sight.x,y:(sight.y??590)-17};
   const obstruction=shotObstruction(cover,{x:attacker.x,y:originY},destination);
-  if (!target && (!obstruction || Math.abs(obstruction.x-attacker.x)>range))
-    return null;
+  // The fire button is an action, not merely a request for auto-targeting.
+  // If no fighter or close barricade is acquired, launch a real bolt into
+  // the facing lane. Actual impact still determines whether anything is hit.
+  const closeCover=!target&&obstruction&&
+    Math.abs(obstruction.x-attacker.x)<=range;
   const direction=Math.sign(sight.x-attacker.x)||(attacker.team==='blue'?1:-1);
   // Do not spawn a projectile on the far side of nearby solid cover.
   const coverEdge=obstruction ?
@@ -32,7 +35,9 @@ export function planChampionShot({
   const targetEdge=Math.max(0,Math.abs(sight.x-attacker.x)-4);
   const muzzle=Math.min(43,coverEdge,targetEdge);
   const origin={x:attacker.x+direction*muzzle,y:originY};
-  const aim=target?destination:{x:obstruction.x,y:originY};
+  const aim=target?destination:closeCover?
+    {x:obstruction.x,y:originY}:
+    {x:attacker.x+direction*range,y:originY};
   // An overlapping target at identical coordinates still receives a
   // travelling projectile in the attacker's facing direction.
   if(aim.x===origin.x&&aim.y===origin.y)aim.x+=direction*50;

@@ -1,7 +1,15 @@
 // Deterministic single-lane formation spacing without random movement or new art.
-export function formationGoal(unit,goal,allies,{spacing=24,weight=0.55}={}){
+export function formationGoal(unit,goal,allies,{
+ spacing=24,weight=0.55,maxElevation=65
+}={}){
  if(!Number.isFinite(goal)||!Number.isFinite(unit.x))throw new RangeError('Invalid position');
- const nearby=allies.filter(a=>a.team===unit.team&&a.hp>0&&a.id!==unit.id&&Math.abs(a.x-goal)<spacing*2);
+ if(!Number.isFinite(maxElevation)||maxElevation<0)
+  throw new RangeError('Invalid formation elevation');
+ const unitY=unit.y??590;
+ const nearby=allies.filter(a=>a.team===unit.team&&a.hp>0&&a.id!==unit.id&&
+  Number.isFinite(a.x)&&Number.isFinite(a.y??590)&&
+  Math.abs((a.y??590)-unitY)<=maxElevation&&
+  Math.abs(a.x-goal)<spacing*2);
  if(!nearby.length)return goal;
  // Tie-breaking is stable across frames, so units do not jitter or swap lanes.
  const order=[...nearby,unit].sort((a,b)=>a.id-b.id);
@@ -31,13 +39,21 @@ export function rangerStandoffGoal(unit, target, { minimum=115, preferred=175, l
  * Keep ranged escorts behind an active melee screen during Hunt advances.
  * Only constrains movement toward a living target; emergency kiting remains free.
  */
-export function screenedRangerGoal(unit,target,allies,goal,{gap=60,left=50,right=1230}={}){
+export function screenedRangerGoal(unit,target,allies,goal,{
+ gap=60,maxElevation=65,left=50,right=1230
+}={}){
  if(unit?.role!=='ranger'||!target||!Number.isFinite(target.x)||!Number.isFinite(goal))return goal;
- if(!Number.isFinite(gap)||gap<0)throw new RangeError('Invalid formation gap');
+ if(!Number.isFinite(gap)||gap<0||!Number.isFinite(maxElevation)||maxElevation<0)
+  throw new RangeError('Invalid formation screen');
  const direction=Math.sign(target.x-unit.x);
  if(!direction||Math.sign(goal-unit.x)!==direction)return goal;
+ // The ranged screen is a physical fighting line, not a projection of
+ // melee teammates standing on unrelated upper/lower gantries.
+ const unitY=unit.y??590;
  const front=allies.filter(a=>a.team===unit.team&&a.id!==unit.id&&a.hp>0&&
-  (a.role==='vanguard'||a.role==='sentinel')&&Number.isFinite(a.x));
+  (a.role==='vanguard'||a.role==='sentinel')&&
+  Number.isFinite(a.x)&&Number.isFinite(a.y??590)&&
+  Math.abs((a.y??590)-unitY)<=maxElevation);
  if(!front.length)return goal;
  // The furthest advanced melee fighter anchors the screen.
  const screen=direction>0?Math.max(...front.map(a=>a.x)):Math.min(...front.map(a=>a.x));

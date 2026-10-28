@@ -2,6 +2,10 @@ import {shotObstruction} from './cover.js';
 import {sweptGantryContact} from './gantry-projectiles.js';
 // Data-only arena tactics. No texture generation, rendering, or browser dependencies.
 export const TEAM_SIZE=10;
+// All deployed ward emitters stand on the authored ground lane at y=590.
+// A ground ward cannot shield units on the 445px-high Iron Citadel gantries.
+export const SHIELD_GROUND_Y=590;
+export const SHIELD_VERTICAL_REACH=85;
 export const DEFENSE_CATALOG=Object.freeze({
  trap:{cost:25,damage:30,range:48,cooldownMs:1800,maxHp:35},
  turret:{cost:45,damage:12,range:340,cooldownMs:1000,maxHp:65},
@@ -80,14 +84,17 @@ export class TacticalBattle {
   }
   return attacks;
  }
- incomingDamage(team,amount,x){
+ incomingDamage(team,amount,x,targetY=SHIELD_GROUND_Y){
   this.requireTeam(team);
-  if(!Number.isFinite(amount)||amount<0)throw new RangeError('Invalid damage');
+  if(!Number.isFinite(amount)||amount<0||
+     !Number.isFinite(x)||!Number.isFinite(targetY))
+   throw new RangeError('Invalid damage or shield target geometry');
   // Multiple paid shield emitters may cover the same fighter. Drain the
   // nearest living emitter first and carry any spillover to the next rather
   // than injuring the fighter while another nearby shield still has charge.
   const shields=this.defenses.filter(d=>d.team===team&&d.kind==='shield'&&
-    d.hp>0&&Math.abs(d.x-x)<=DEFENSE_CATALOG.shield.range)
+    d.hp>0&&Math.abs(d.x-x)<=DEFENSE_CATALOG.shield.range&&
+    Math.abs(targetY-SHIELD_GROUND_Y)<=SHIELD_VERTICAL_REACH)
     .sort((a,b)=>Math.abs(a.x-x)-Math.abs(b.x-x)||a.id-b.id);
   let remaining=amount;
   for(const shield of shields){

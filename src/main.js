@@ -391,7 +391,8 @@ class Arena extends Phaser.Scene {
       const contact=firstBattleProjectileContact(previous,
         {x:projectile.x,y:projectile.y},{
           firingTeam:projectile.getData('team'),
-          champions,companions:this.companions.units,cover:this.cover
+          champions,companions:this.companions.units,cover:this.cover,
+          gantries:IRON_CITADEL_GANTRIES
         });
       if(contact?.kind==='cover'){
         // Physical obstruction wins: apply damage once, then remove the bullet.
@@ -399,6 +400,12 @@ class Arena extends Phaser.Scene {
         const team=projectile.getData('team');
         projectile.destroy();
         this.damageCover(contact.id,damage,team);
+        continue;
+      }
+      if(contact?.kind==='terrain'){
+        // The authored stone walkway is real terrain. Stop the bolt at the
+        // earliest gantry impact, without damaging units behind the platform.
+        projectile.destroy();
         continue;
       }
       if(contact?.kind==='unit'){

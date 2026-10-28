@@ -59,8 +59,12 @@ export class TacticalBattle {
   if(!Number.isFinite(timeMs))throw new RangeError('Invalid defense time');
   const enemyTeam=team==='blue'?'red':'blue';
   // Old numeric champion-only callers remain valid; the arena supplies living 10v10 targets.
+  // Callers normally pass only enemies, but a future mixed 10v10 roster
+  // must never cause a friendly turret or trap to strike its own faction.
+  // Teamless legacy 1D targets remain accepted for older simulation tests.
   const candidates=(Array.isArray(opponents)?opponents:[{id:'champion',x:opponents,hp:1}])
-   .filter(u=>u&&u.hp>0&&u.id!=null&&Number.isFinite(u.x));
+   .filter(u=>u&&u.hp>0&&u.id!=null&&Number.isFinite(u.x)&&
+     (u.team===undefined||u.team===enemyTeam));
   const attacks=[];
   for(const d of this.defenses){
    if(d.team!==team||d.hp<=0||d.kind==='shield')continue;

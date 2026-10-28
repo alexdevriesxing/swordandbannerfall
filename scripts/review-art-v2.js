@@ -1,5 +1,5 @@
 import {pathToFileURL} from 'node:url';
-import {readFileSync,existsSync} from 'node:fs';
+import {readFileSync,existsSync,readdirSync,lstatSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {verifyAssets,REQUIRED_ASSETS} from './verify-assets.js';
@@ -28,13 +28,43 @@ export const ART_V2_ALPHA=Object.freeze([
  'fx/projectile.png','fx/slash.png',
  'defenses/trap.png','defenses/turret.png','defenses/shield.png'
 ]);
+// Walk a v2 candidate as an untrusted delivery. Never follow symlinks:
+// unexpected files (including concept boards) must not be quietly included
+// in an otherwise valid importable production texture folder.
+export function auditCandidateInventory(root,expected=ART_V2_REQUIRED){
+ const allowed=new Set(expected);
+ const unexpected=[];
+ const stack=[['',root]];
+ while(stack.length){
+  const [relative,folder]=stack.pop();
+  for(const entry of readdirSync(folder,{withFileTypes:true})){
+   const path=relative?relative+'/'+entry.name:entry.name;
+   const full=join(folder,entry.name);
+   if(entry.isSymbolicLink()){
+    unexpected.push('symlink candidate: '+path);
+    continue;
+   }
+   if(entry.isDirectory()){
+    if(!expected.some(name=>name.startsWith(path+'/')))
+     unexpected.push('unexpected directory: '+path);
+    else stack.push([path,full]);
+   }else if(!entry.isFile()||!allowed.has(path)){
+    unexpected.push('unexpected artwork file: '+path);
+   }else if(!lstatSync(full).isFile()){
+    unexpected.push('invalid artwork entry: '+path);
+   }
+  }
+ }
+ return unexpected.sort();
+}
 export function reviewArtV2(directory,{allowPartial=false}={}){
  const root=resolve(directory);
  const structure=verifyAssets(root,ART_V2_REQUIRED);
  const issues=[
   ...(!allowPartial?structure.missing.map(path=>'missing: '+path):[]),
   ...structure.empty.map(path=>'empty: '+path),
-  ...structure.invalid.map(path=>'invalid image/dimensions: '+path)
+  ...structure.invalid.map(path=>'invalid image/dimensions: '+path),
+  ...auditCandidateInventory(root)
  ];
  const assets={};
  const digests=new Map();

@@ -1,11 +1,12 @@
 import {combatElevation} from './elevation.js';
 import {shotObstruction} from './cover.js';
+import {sweptGantryContact} from './gantry-projectiles.js';
 
 // Vanguard Cleave is a limited, positional melee arc, not just bonus damage
 // to the chosen fighter. Resolve only real nearby hostile combatants.
 // No additional imagery is drawn; the authored VFX pipeline owns presentation.
 export function cleaveSplashTargets(attacker,primary,candidates,{
- radius=65,range=95,maxExtra=2,cover=null
+ radius=65,range=95,maxExtra=2,cover=null,gantries=[]
 }={}){
  if(!attacker||attacker.role!=='vanguard'||!(attacker.hp>0)||
   !primary||!(primary.hp>0)||primary.team===attacker.team||
@@ -20,7 +21,9 @@ export function cleaveSplashTargets(attacker,primary,candidates,{
   Math.abs(enemy.x-attacker.x)<=range&&
   combatElevation(attacker,enemy).melee===true&&
   !shotObstruction(cover,
-   {x:attacker.x,y:attacker.y-17},{x:enemy.x,y:enemy.y-17}));
+   {x:attacker.x,y:attacker.y-17},{x:enemy.x,y:enemy.y-17})&&
+  !sweptGantryContact(
+   {x:attacker.x,y:attacker.y-17},{x:enemy.x,y:enemy.y-17},gantries));
  return options.sort((a,b)=>
   Math.abs(a.x-primary.x)-Math.abs(b.x-primary.x)||
   String(a.id).localeCompare(String(b.id))).slice(0,maxExtra);

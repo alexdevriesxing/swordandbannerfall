@@ -78,3 +78,43 @@ test('the four placed defenses are distinct and cost paid supply with no hidden 
  assert.equal(tactics.supply.red,100+80-45-35-25-45);
  assert.equal(new Set(tactics.defenses.map(x=>x.id)).size,4);
 });
+
+test('upper gantry combatant does not prevent safe ground trap placement',()=>{
+ const tactics=new TacticalBattle(),director=new EnemyDefenseDirector();
+ director.update(tactics,{phase:'setup',timeMs:0});
+ tactics.grantSupply('red',50);
+ director.update(tactics,{phase:'fight',timeMs:1000});
+ const placed=director.update(tactics,{phase:'fight',timeMs:8000,
+  opponents:[{id:7,team:'blue',x:775,y:445,hp:80}]
+ });
+ assert.equal(placed.length,1);
+ assert.equal(placed[0].kind,'trap');
+ assert.equal(placed[0].x,775);
+ assert.equal(tactics.supply.red,45,'trap has paid the full supply cost');
+});
+
+test('opponent near floor still blocks placement, including a near-floor jumper',()=>{
+ const tactics=new TacticalBattle(),director=new EnemyDefenseDirector();
+ director.update(tactics,{phase:'setup',timeMs:0});
+ tactics.grantSupply('red',50);
+ director.update(tactics,{phase:'fight',timeMs:1000});
+ const placed=director.update(tactics,{phase:'fight',timeMs:8000,
+  opponents:[{id:9,team:'blue',x:775,y:535,hp:60}]
+ });
+ assert.equal(placed.length,1);
+ assert.equal(placed[0].kind,'turret');
+ assert.equal(tactics.defenses.some(d=>d.kind==='trap'),false);
+ assert.ok(director.snapshot().waiting.includes('approach-trap'));
+});
+
+test('defeated enemies on the floor cannot permanently block paid construction',()=>{
+ const tactics=new TacticalBattle(),director=new EnemyDefenseDirector();
+ director.update(tactics,{phase:'setup',timeMs:0});
+ tactics.grantSupply('red',50);
+ director.update(tactics,{phase:'fight',timeMs:1000});
+ const placed=director.update(tactics,{phase:'fight',timeMs:8000,
+  opponents:[{id:9,team:'blue',x:775,y:590,hp:0}]
+ });
+ assert.equal(placed.length,1);
+ assert.equal(placed[0].kind,'trap');
+});

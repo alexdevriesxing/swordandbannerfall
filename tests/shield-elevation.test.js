@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {TacticalBattle,SHIELD_GROUND_Y,SHIELD_VERTICAL_REACH} from '../src/systems/tactics.js';
 import {protectedCompanionDamage} from '../src/systems/companion-damage.js';
+import {CompanionDirector} from '../src/systems/companions.js';
+import {EliminationMatch} from '../src/systems/elimination.js';
 
 const ward=(team='blue',x=300)=>{
  const battle=new TacticalBattle();
@@ -80,4 +82,41 @@ test('existing horizontal-only damage calls still assume the standard ground lan
  assert.deepEqual(tactics.incomingDamage('blue',22,310),
   {absorbed:22,remaining:0});
  assert.equal(tactics.defenses[0].hp,68);
+});
+
+test('a lethal gantry hit records exactly one companion KO despite intact ground shield',()=>{
+ const wards=ward();
+ const director=new CompanionDirector({maxPerTeam:1});
+ const fighter=director.add('blue',300,{role:'ranger'});
+ const record=director.units.find(u=>u.id===fighter.id);
+ record.y=445;
+ const match=new EliminationMatch({fightersPerTeam:2});
+ for(const team of ['blue','red']){
+  match.register(team,team==='blue'?'hero':'enemy');
+  match.register(team,team==='blue'?'ai-'+record.id:'ai-900');
+ }
+ match.begin();
+ const calculated=protectedCompanionDamage(wards,director.units,record,100,1000);
+ assert.equal(calculated.absorbed,0,'ground ward cannot protect elevated casualty');
+ assert.equal(calculated.damage,100);
+ assert.equal(director.wound(fighter.id,calculated.damage).ko,true);
+ assert.deepEqual(match.eliminate('ai-'+fighter.id),{
+  accepted:true,remaining:1,winner:null
+ });
+ assert.equal(director.wound(fighter.id,100).applied,0);
+ assert.equal(match.eliminate('ai-'+fighter.id).accepted,false);
+ assert.equal(match.snapshot().eliminations.blue,1);
+ assert.equal(wards.defenses[0].hp,90);
+});
+
+test('identical ground hit is intercepted and preserves the 10v10 roster slot',()=>{
+ const wards=ward();
+ const director=new CompanionDirector({maxPerTeam:1});
+ const fighter=director.add('blue',300,{role:'ranger'});
+ const record=director.units.find(u=>u.id===fighter.id);
+ const calculated=protectedCompanionDamage(wards,director.units,record,45,1000);
+ assert.deepEqual(calculated,{damage:0,absorbed:45,intercepted:false});
+ assert.equal(director.wound(fighter.id,calculated.damage).ko,false);
+ assert.equal(record.hp,45);
+ assert.equal(wards.defenses[0].hp,45);
 });

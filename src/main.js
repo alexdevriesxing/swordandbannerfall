@@ -728,7 +728,7 @@ class Arena extends Phaser.Scene {
     const aiActions=this.companions.update(time,Math.min(delta*pace,65),{
       blue:{team:'blue',x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:320})?.id??null,hp:this.director.fighters.hero.hp},
       red:{team:'red',x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:320})?.id??null,hp:this.director.fighters.enemy.hp}
-    },this.cover,this.platforms,{blue:{speedMultiplier:this.comeback.speed('blue')},red:{speedMultiplier:this.comeback.speed('red')}});
+    },this.cover,this.platforms,{blue:{speedMultiplier:this.comeback.speed('blue')},red:{speedMultiplier:this.comeback.speed('red')}},IRON_CITADEL_GANTRIES);
     for(const attack of this.telegraphs.popReady(time)){
       const attacker=this.companions.units.find(u=>u.id===attack.attacker);
       if(!attacker||attacker.hp<=0)continue;
@@ -736,7 +736,8 @@ class Arena extends Phaser.Scene {
         blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:180})?.id??null},
         red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:180})?.id??null}
       });
-      if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover}))continue;
+      if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover,
+        gantries:IRON_CITADEL_GANTRIES}))continue;
       if(attacker.role==='ranger'){
         this.fireCompanion(attacker,{...resolved,id:attack.target},attack.damage);
         continue;

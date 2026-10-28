@@ -34,8 +34,12 @@ export class EnemyDefenseDirector {
    if(phase==='fight'&&(timeMs-this.battleStartedAt<this.firstBattleDeployMs
      ||timeMs-this.lastBattleDeploy<this.battleCooldownMs))continue;
    if(tactics.supply[this.team]<DEFENSE_CATALOG[entry.kind].cost)continue;
-   if(opponents.some(u=>u?.hp>0&&Number.isFinite(u.x)
-     &&Math.abs(u.x-entry.x)<this.safetyDistance))continue;
+   // A defense is assembled on the arena floor (y=590). Do not spawn
+   // beneath a living ground combatant, but an enemy safely overhead on
+   // an authored 445px gantry does not occupy the deployment footprint.
+   if(opponents.some(u=>u?.hp>0&&Number.isFinite(u.x)&&
+     Math.abs(u.x-entry.x)<this.safetyDistance&&
+     Number.isFinite(u.y??590)&&Math.abs((u.y??590)-590)<=65))continue;
    const result=tactics.deploy(this.team,entry.kind,entry.x);
    if(result.accepted){
     this.completed.add(entry.id);

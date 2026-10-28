@@ -1,4 +1,5 @@
 import {shotObstruction} from './cover.js';
+import {sweptGantryContact} from './gantry-projectiles.js';
 // Data-only arena tactics. No texture generation, rendering, or browser dependencies.
 export const TEAM_SIZE=10;
 export const DEFENSE_CATALOG=Object.freeze({
@@ -49,7 +50,7 @@ export class TacticalBattle {
   const defense={id:this.nextDefenseId++,team,kind,x,hp:spec.maxHp,lastFired:-Infinity};
   this.defenses.push(defense);return {accepted:true,defense:{...defense}};
  }
- getTargets(team,opponents,timeMs,{cover=null}={}){
+ getTargets(team,opponents,timeMs,{cover=null,gantries=[]}={}){
   this.requireTeam(team);
   if(!Number.isFinite(timeMs))throw new RangeError('Invalid defense time');
   const enemyTeam=team==='blue'?'red':'blue';
@@ -66,8 +67,10 @@ export class TacticalBattle {
     const targetY=Number.isFinite(u.y)?u.y:590;
     // A ground pressure trap cannot reach elevated platforms.
     if(d.kind==='trap'&&Math.abs(targetY-590)>60)return false;
-    if(d.kind==='turret'&&shotObstruction(cover,
-      {x:d.x,y:560},{x:u.x,y:targetY-17}))return false;
+    if(d.kind==='turret'&&(
+      shotObstruction(cover,{x:d.x,y:560},{x:u.x,y:targetY-17})||
+      sweptGantryContact({x:d.x,y:560},{x:u.x,y:targetY-17},gantries)
+    ))return false;
     return true;
    }).sort((a,b)=>Math.abs(d.x-a.x)-Math.abs(d.x-b.x)||String(a.id).localeCompare(String(b.id)))[0];
    if(!target)continue;

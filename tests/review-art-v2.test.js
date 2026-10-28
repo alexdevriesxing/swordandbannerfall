@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,readdirSync,mkdirSync,writeFileSync} from 'node:fs';
+import {mkdtempSync,rmSync,readdirSync,mkdirSync,writeFileSync,symlinkSync} from 'node:fs';
 import {deflateSync} from 'node:zlib';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -72,5 +72,33 @@ test('even partial submissions must contain at least one valid decoded image',()
   assert.equal(result.technicalPass,false);
   assert.equal(result.complete,false);
   assert.ok(result.issues.some(x=>x.includes('empty candidate')));
+ }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+test('partial v2 candidate rejects promotional board even with a valid card image',()=>{
+ const root=mkdtempSync(join(tmpdir(),'bannerfall-v2-stray-'));
+ try{
+  mkdirSync(join(root,'cards'));
+  writeFileSync(join(root,'cards','war-cry.png'),testCardPng());
+  writeFileSync(join(root,'art-direction-collage.png'),testCardPng());
+  const report=reviewArtV2(root,{allowPartial:true});
+  assert.equal(report.presentCount,1);
+  assert.equal(report.technicalPass,false);
+  assert.ok(report.issues.includes('unexpected artwork file: art-direction-collage.png'));
+  assert.ok(report.approval.startsWith('NOT APPROVED'));
+ }finally{rmSync(root,{recursive:true,force:true});}
+});
+test('reject symlinked source art and unrelated nested folders',()=>{
+ const root=mkdtempSync(join(tmpdir(),'bannerfall-v2-symlink-'));
+ try{
+  mkdirSync(join(root,'cards'));
+  writeFileSync(join(root,'cards','war-cry.png'),testCardPng());
+  mkdirSync(join(root,'moodboards'));
+  writeFileSync(join(root,'moodboards','marketing.png'),testCardPng());
+  symlinkSync(join(root,'cards','war-cry.png'),join(root,'cards','shieldwall.png'));
+  const report=reviewArtV2(root,{allowPartial:true});
+  assert.equal(report.technicalPass,false);
+  assert.ok(report.issues.includes('unexpected directory: moodboards'));
+  assert.ok(report.issues.includes('symlink candidate: cards/shieldwall.png'));
  }finally{rmSync(root,{recursive:true,force:true});}
 });

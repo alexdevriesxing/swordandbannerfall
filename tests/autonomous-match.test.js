@@ -290,7 +290,8 @@ test('real seeded deployment variations produce distinct, reproducible 10v10 mat
 test('full Iron Citadel 10v10 model includes real gantry traversal and collision',()=>{
  const configs=[
   {seed:5,formationVariance:10,withGantries:true,maxMs:180000},
-  {seed:71,formationVariance:20,withGantries:true,maxMs:180000}
+  {seed:71,formationVariance:20,withGantries:true,maxMs:180000},
+  {seed:97,blueHeroFalls:true,formationVariance:14,withGantries:true,maxMs:180000}
  ];
  for(const cfg of configs){
   const result=simulate(cfg);

@@ -73,8 +73,14 @@ export class CompanionDirector {
     ...snapshot.filter(u=>u.team!==unit.team)
    ];
    // Prioritize immediate threats to our champion; ranged units favor fragile enemy companions.
-   const canEngage=foe=>combatElevation(unit,foe)[
-    unit.role==='ranger'?'ranged':'melee'];
+   const canEngage=foe=>{
+    const elevationOk=combatElevation(unit,foe)[
+      unit.role==='ranger'?'ranged':'melee'];
+    if(!elevationOk)return false;
+    const lineStart={x:unit.x,y:(unit.y??GROUND_Y)-17};
+    const lineEnd={x:foe.x,y:(foe.y??GROUND_Y)-17};
+    return !sweptGantryContact(lineStart,lineEnd,gantries);
+   };
    const score=foe=>{
     const distance=Math.abs(foe.x-unit.x);
     const threat=Math.abs(foe.x-(champion?.x??unit.anchor))<180?110:0;

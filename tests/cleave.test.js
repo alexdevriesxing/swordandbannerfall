@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cleaveSplashTargets,cleaveSplashDamage} from '../src/systems/cleave.js';
 import {BattlefieldCover} from '../src/systems/cover.js';
+import {IRON_CITADEL_GANTRIES} from '../src/levels/iron-citadel.js';
 
 const actor={id:1,role:'vanguard',team:'blue',x:400,y:590,hp:80};
 const primary={id:8,team:'red',x:465,y:590,hp:70};
@@ -50,4 +51,24 @@ test('only a living Vanguard with a valid attack arc may cleave',()=>{
  assert.deepEqual(cleaveSplashTargets(actor,{...primary,team:'blue'},[other(2,450)]),[]);
  assert.deepEqual(cleaveSplashTargets(actor,primary,[other(2,450)],{maxExtra:0}),[]);
  assert.throws(()=>cleaveSplashDamage(0),RangeError);
+});
+
+test('Vanguard Cleave cannot strike a splash victim through the solid gantry slab',()=>{
+ const fighter={id:1,team:'blue',role:'vanguard',x:300,y:530,hp:80};
+ const primaryHit={id:8,team:'red',x:325,y:530,hp:50};
+ const victim={id:9,team:'red',x:365,y:468,hp:50};
+ assert.deepEqual(cleaveSplashTargets(fighter,primaryHit,[primaryHit,victim])
+  .map(x=>x.id),[9],'vertical reach alone would previously permit the splash');
+ assert.deepEqual(cleaveSplashTargets(fighter,primaryHit,[primaryHit,victim],{
+  gantries:IRON_CITADEL_GANTRIES
+ }),[], 'the real 24px walkway separates the fighters');
+});
+
+test('Vanguard splash still reaches adjacent unobstructed foes around gantry',()=>{
+ const fighter={id:1,team:'red',role:'vanguard',x:300,y:530,hp:80};
+ const primaryHit={id:8,team:'blue',x:325,y:530,hp:50};
+ const victim={id:9,team:'blue',x:350,y:530,hp:50};
+ assert.deepEqual(cleaveSplashTargets(fighter,primaryHit,[victim],{
+  gantries:IRON_CITADEL_GANTRIES
+ }).map(x=>x.id),[9]);
 });

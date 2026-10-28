@@ -93,7 +93,13 @@ export class CompanionDirector {
    // platform. If the squad's target is out of this fighter's elevation
    // envelope, take a reachable personal opponent instead.
    const reachablePersonal=foes.filter(canEngage)[0]??null;
-   const closest=preferred&&!canEngage(preferred)&&reachablePersonal?
+   // Only take an alternative that is genuinely nearby. Otherwise keep
+   // pursuing the elevated shared target along an authored platform route,
+   // rather than chasing a faraway champion merely because it is at ground.
+   const nearbyAlternative=reachablePersonal&&
+    Math.abs(reachablePersonal.x-unit.x)<=Math.min(320,
+      Math.abs((preferred?.x??unit.x)-unit.x)+180);
+   const closest=preferred&&!canEngage(preferred)&&nearbyAlternative?
     reachablePersonal:preferred;
    const order=battleOrder(unit.team);
    const guardPoint=champion?.x??unit.anchor;

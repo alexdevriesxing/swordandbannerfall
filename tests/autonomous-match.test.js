@@ -65,7 +65,7 @@ function simulate({
   if(match.phase!=='fight')return;
   const victim=liveTarget(targetId);
   if(!victim)return;
-  const blocked=tactics.incomingDamage(victim.team,amount,victim.x);
+  const blocked=tactics.incomingDamage(victim.team,amount,victim.x,victim.y??590);
   const protectedHit=interceptDamage(ai.units,victim.team,victim.x,blocked.remaining,time,victim.y??590,victim.id);
   if(targetId==='hero'||targetId==='enemy'){
    const result=combat.damage(targetId,protectedHit.damage,type);

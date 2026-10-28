@@ -5,6 +5,7 @@ import { jumpPlan, advanceJump, GROUND_Y } from './navigation.js';
 import { platformJump, advancePlatformJump } from './platform-routes.js';
 import { combatElevation } from './elevation.js';
 import { shotObstruction } from './cover.js';
+import { sweptGantryContact } from './gantry-projectiles.js';
 // Deterministic allied and enemy companion AI; independent of Phaser and artwork.
 export const ORDERS=Object.freeze(['guard','patrol','hunt']);
 export const ROLES=Object.freeze({
@@ -37,7 +38,7 @@ export class CompanionDirector {
   const applied=Math.min(amount,unit.hp);unit.hp-=applied;
   return {applied,ko:unit.hp===0};
  }
- update(timeMs,deltaMs,champions,cover=null,platforms=null,teamEffects=null){
+ update(timeMs,deltaMs,champions,cover=null,platforms=null,teamEffects=null,gantries=[]){
   if(!Number.isFinite(timeMs)||!Number.isFinite(deltaMs)||deltaMs<0)throw new RangeError('Invalid time');
   const actions=[];
   // At the beginning of an authored-platform encounter, snap the logical elevation
@@ -181,12 +182,16 @@ export class CompanionDirector {
    actions.push({type:'move',id:unit.id,x:unit.x,y:unit.y});
    if(!closest||retreating)continue;
    const enemyY=closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)??GROUND_Y;
-   const blockedShot=shotObstruction(cover,{x:unit.x,y:unit.y-17},{x:closest.x,y:enemyY-17});
+   const from={x:unit.x,y:unit.y-17},to={x:closest.x,y:enemyY-17};
+   const blockedShot=shotObstruction(cover,from,to);
+   // Gantries are physical stone platforms; an otherwise valid ranged target
+   // behind them must not burn a cooldown or start a precision windup.
+   const blockedByGantry=sweptGantryContact(from,to,gantries)!==null;
    const breach=breachCandidate(unit,blockedShot,{reach:Math.max(this.attackRange,unit.range)});
    if(breach&&order==='hunt'&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     actions.push({type:'cover-attack',id:unit.id,team:unit.team,coverId:blockedShot.id,damage:unit.damage});
-   }else if(!blockedShot&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)})[unit.role==='ranger'?'ranged':'melee']&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
+   }else if(!blockedShot&&!blockedByGantry&&combatElevation(unit,{...closest,y:closest.y??(platforms&&closest.platformNode?platforms.nodes.get(closest.platformNode)?.y:GROUND_Y)})[unit.role==='ranger'?'ranged':'melee']&&Math.abs(closest.x-unit.x)<=Math.max(this.attackRange,unit.range)&&timeMs-unit.lastAttack>=this.attackCooldown){
     unit.lastAttack=timeMs;
     const special=specialAttack(unit,timeMs);
     actions.push({type:'attack',id:unit.id,team:unit.team,targetId:closest.id,damage:unit.damage+(special?.bonusDamage??0),ability:special?.ability??null});

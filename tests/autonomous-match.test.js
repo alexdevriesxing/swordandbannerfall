@@ -18,7 +18,11 @@ import {interceptDamage} from '../src/systems/abilities.js';
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
 // flight, defenses, champion health and 10v10 eliminations without Phaser sprites.
 // This is NOT a replacement for visual/physics/browser end-to-end validation.
-function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
+function simulate({
+ seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100,formationVariance=0
+}={}){
+ if(!Number.isFinite(formationVariance)||formationVariance<0||formationVariance>30)
+  throw new RangeError('Invalid formation variance');
  const prep=new PreparationPhase({durationMs:1200});
  const match=new EliminationMatch();
  const ai=new CompanionDirector({maxPerTeam:9});
@@ -28,8 +32,8 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
  const windups=new AttackTelegraphs();
  const shots=[];
  const champions={
-  blue:{id:'hero',team:'blue',x:210,y:590,hp:100},
-  red:{id:'enemy',team:'red',x:1070,y:590,hp:100}
+  blue:{id:'hero',team:'blue',x:210+(combat.rng.next()-.5)*2*formationVariance,y:590,hp:100},
+  red:{id:'enemy',team:'red',x:1070+(combat.rng.next()-.5)*2*formationVariance,y:590,hp:100}
  };
  const clocks={hero:-Infinity,enemy:-Infinity};
  const metrics={frames:0,shots:0,hits:0,coverBroken:0,championKOs:0,attacks:0,duplicateKOs:0};
@@ -37,11 +41,16 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
  for(const team of ['blue','red']){
   for(let i=0;i<9;i++){
    const role=['sentinel','ranger','vanguard'][i%3];
-   const x=team==='blue'?125+i*19:1150-i*19;
+   const x=(team==='blue'?125+i*19:1150-i*19)+
+    (combat.rng.next()-.5)*2*formationVariance;
    const unit=ai.add(team,x,{role});
    assert.ok(unit);match.register(team,'ai-'+unit.id);
   }
  }
+ const opening={
+  champions:{blue:champions.blue.x,red:champions.red.x},
+  units:ai.units.map(unit=>({id:unit.id,team:unit.team,x:unit.x}))
+ };
  assert.equal(prep.tick(600),false);
  assert.equal(prep.tick(600),true);
  match.begin();
@@ -200,7 +209,7 @@ function simulate({seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100}={}){
    }
   }
  }
- return {match:match.snapshot(),metrics,timeMs:1300+metrics.frames*stepMs,remainingHP:champions,cover:cover.snapshot()};
+ return {match:match.snapshot(),opening,metrics,timeMs:1300+metrics.frames*stepMs,remainingHP:champions,cover:cover.snapshot()};
 }
 test('two autonomous 10v10 teams complete a finite seeded match',()=>{
  const result=simulate({seed:1});
@@ -244,4 +253,25 @@ test('extended 10v10 projectile-interception scenarios finish without duplicate 
     'incorrect 10v10 roster accounting for '+team+' seed '+seed);
   assert.ok(result.metrics.frames<=1800,'seed '+seed+' exceeded frame budget');
  }
+});
+
+test('real seeded deployment variations produce distinct, reproducible 10v10 matches',()=>{
+ const variants=[13,21,44,105,144,233,377,503];
+ const openings=new Set();
+ for(const seed of variants){
+  const result=simulate({seed,formationVariance:25,maxMs:180000});
+  openings.add(JSON.stringify(result.opening));
+  assert.equal(result.match.phase,'finished',
+   'formation variant '+seed+' stalled: '+JSON.stringify(result.metrics));
+  assert.equal(result.metrics.duplicateKOs,0);
+  for(const team of ['blue','red'])
+   assert.equal(result.match.eliminations[team]+result.match.remaining[team],10,
+    'variant '+seed+' broke roster conservation');
+ }
+ assert.equal(openings.size,variants.length,
+  'different seeds must actually vary the formation rather than repeat the same test');
+ const first=simulate({seed:44,formationVariance:25,maxMs:180000});
+ const again=simulate({seed:44,formationVariance:25,maxMs:180000});
+ assert.deepEqual(first.opening,again.opening);
+ assert.deepEqual(first.metrics,again.metrics,'seeded match should replay deterministically');
 });

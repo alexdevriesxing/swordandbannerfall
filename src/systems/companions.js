@@ -72,15 +72,29 @@ export class CompanionDirector {
     ...snapshot.filter(u=>u.team!==unit.team)
    ];
    // Prioritize immediate threats to our champion; ranged units favor fragile enemy companions.
+   const canEngage=foe=>combatElevation(unit,foe)[
+    unit.role==='ranger'?'ranged':'melee'];
    const score=foe=>{
     const distance=Math.abs(foe.x-unit.x);
     const threat=Math.abs(foe.x-(champion?.x??unit.anchor))<180?110:0;
     const fragility=unit.role==='ranger'&&foe.id!=='champion'?35:0;
-    return distance-threat-fragility;
+    // Prefer an opponent within this unit's physical fighting lane. Keep
+    // high-level foes eligible when they are the last remaining targets,
+    // since authored platform routes can still connect those positions.
+    const heightPenalty=canEngage(foe)?0:350;
+    return distance-threat-fragility+heightPenalty;
    };
    const personal=foes.sort((a,b)=>score(a)-score(b)||String(a.id).localeCompare(String(b.id)))[0];
    const shared=foes.find(f=>f.id===teamFocus[unit.team]?.id);
-   const closest=battleOrder(unit.team)==='guard'&&personal&&Math.abs(personal.x-(champion?.x??unit.anchor))<160?personal:(shared??personal);
+   const guardThreat=battleOrder(unit.team)==='guard'&&personal&&
+    Math.abs(personal.x-(champion?.x??unit.anchor))<160;
+   const preferred=guardThreat?personal:(shared??personal);
+   // Shared focus is tactical guidance, not permission to melee through a
+   // platform. If the squad's target is out of this fighter's elevation
+   // envelope, take a reachable personal opponent instead.
+   const reachablePersonal=foes.filter(canEngage)[0]??null;
+   const closest=preferred&&!canEngage(preferred)&&reachablePersonal?
+    reachablePersonal:preferred;
    const order=battleOrder(unit.team);
    const guardPoint=champion?.x??unit.anchor;
    const fallback=unit.team==='blue'?110:1170;

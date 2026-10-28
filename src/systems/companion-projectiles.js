@@ -1,10 +1,13 @@
 import {aimVelocity} from './ballistics.js';
 import {combatElevation} from './elevation.js';
 import {shotObstruction} from './cover.js';
+import {sweptGantryContact} from './gantry-projectiles.js';
 
 // A projectile is a real travelling object. Never apply ranged damage on attack selection.
 // The scene renders the existing approved projectile sprite, never generated artwork.
-export function planCompanionShot({attacker,target,damage,cover=null,speed=650}={}){
+export function planCompanionShot({
+ attacker,target,damage,cover=null,gantries=[],speed=650
+}={}){
  if(!attacker||!target||!['blue','red'].includes(attacker.team)||
     !['blue','red'].includes(target.team)||attacker.team===target.team||
     !(attacker.hp>0)||!(target.hp>0)||
@@ -19,6 +22,9 @@ export function planCompanionShot({attacker,target,damage,cover=null,speed=650}=
  const destination={x:target.x,y:target.y-17};
  if(destination.x===origin.x&&destination.y===origin.y)
   destination.x+=direction*50;
+ // Preserve cooldown opportunities for legitimate targets rather than
+ // launching autonomous arrows into impenetrable stone platforms.
+ if(sweptGantryContact(origin,destination,gantries))return null;
  const velocity=aimVelocity(origin,destination,speed);
  if(velocity.x===0&&velocity.y===0)return null;
  return {origin,velocity,targetId:target.id,team:attacker.team,damage};

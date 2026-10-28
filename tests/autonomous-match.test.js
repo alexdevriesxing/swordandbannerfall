@@ -14,12 +14,15 @@ import {firstBattleProjectileContact} from '../src/systems/battle-projectiles.js
 import {planTurretShot} from '../src/systems/turret-projectiles.js';
 import {cleaveSplashTargets,cleaveSplashDamage} from '../src/systems/cleave.js';
 import {interceptDamage} from '../src/systems/abilities.js';
+import {PlatformRoutes} from '../src/systems/platform-routes.js';
+import {IRON_CITADEL_NODES,IRON_CITADEL_LINKS,IRON_CITADEL_GANTRIES} from '../src/levels/iron-citadel.js';
 
 // Game-model smoke harness: exercises actual autonomy, cooldowns, cover, projectile
 // flight, defenses, champion health and 10v10 eliminations without Phaser sprites.
 // This is NOT a replacement for visual/physics/browser end-to-end validation.
 function simulate({
- seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100,formationVariance=0
+ seed=1,blueHeroFalls=false,maxMs=180000,stepMs=100,formationVariance=0,
+ withGantries=false
 }={}){
  if(!Number.isFinite(formationVariance)||formationVariance<0||formationVariance>30)
   throw new RangeError('Invalid formation variance');
@@ -29,6 +32,8 @@ function simulate({
  const combat=new CombatDirector({seed});
  const tactics=new TacticalBattle();
  const cover=new BattlefieldCover();
+ const platforms=withGantries?new PlatformRoutes(IRON_CITADEL_NODES,IRON_CITADEL_LINKS):null;
+ const gantries=withGantries?IRON_CITADEL_GANTRIES:[];
  const windups=new AttackTelegraphs();
  const shots=[];
  const champions={
@@ -41,9 +46,13 @@ function simulate({
  for(const team of ['blue','red']){
   for(let i=0;i<9;i++){
    const role=['sentinel','ranger','vanguard'][i%3];
-   const x=(team==='blue'?125+i*19:1150-i*19)+
+   const x=(withGantries&&i===7?(team==='blue'?350:930):
+    team==='blue'?125+i*19:1150-i*19)+
     (combat.rng.next()-.5)*2*formationVariance;
-   const unit=ai.add(team,x,{role});
+   const platformNode=withGantries?(i===7?
+    (team==='blue'?'west-gantry':'east-gantry'):
+    (team==='blue'?'west-foot':'east-foot')):null;
+   const unit=ai.add(team,x,{role,platformNode});
    assert.ok(unit);match.register(team,'ai-'+unit.id);
   }
  }
@@ -91,7 +100,7 @@ function simulate({
   if(before>0&&result.destroyed)metrics.coverBroken++;
  }
  function fire(attacker,target,damage,time){
-  const shot=planCompanionShot({attacker,target,damage,cover});
+  const shot=planCompanionShot({attacker,target,damage,cover,gantries});
   if(!shot)return;
   shots.push({createdAt:time,x:shot.origin.x,y:shot.origin.y,
    velocity:shot.velocity,team:attacker.team,
@@ -109,7 +118,7 @@ function simulate({
  if(blueHeroFalls)hit('hero',1000,'ranged',0);
  for(let time=1300;time<=maxMs&&match.phase==='fight';time+=stepMs){
   metrics.frames++;
-  const actions=ai.update(time,stepMs,champions,cover);
+  const actions=ai.update(time,stepMs,champions,cover,platforms,null,gantries);
   for(const action of actions){
    if(match.phase!=='fight')break;
    if(action.type==='cover-attack'){
@@ -134,7 +143,7 @@ function simulate({
   for(const pending of windups.popReady(time)){
    if(match.phase!=='fight')break;
    const attacker=liveTarget(pending.attacker),target=liveTarget(pending.target);
-   if(!validImpact({attacker,target,range:attacker?.range,cover}))continue;
+   if(!validImpact({attacker,target,range:attacker?.range,cover,gantries}))continue;
    if(attacker.role==='ranger'){
     fire(attacker,target,pending.damage,time);
    }else{
@@ -160,11 +169,13 @@ function simulate({
    // The headless model uses the exact first-impact rules as the Phaser
    // scene: an intervening fighter intercepts, or the nearer cover absorbs.
    const impact=firstBattleProjectileContact(previous,{x:shot.x,y:shot.y},{
-    firingTeam:shot.team,champions,companions:ai.units,cover
+    firingTeam:shot.team,champions,companions:ai.units,cover,gantries
    });
    if(impact?.kind==='cover'){
     shots.splice(i,1);
     breach(impact.id,shot.coverDamage??shot.damage);
+   }else if(impact?.kind==='terrain'){
+    shots.splice(i,1);
    }else if(impact?.kind==='unit'){
     shots.splice(i,1);
     hit(impact.id,shot.damage,'ranged',time);
@@ -174,14 +185,14 @@ function simulate({
   for(const attack of tactics.getTargets('blue',[
    ...(champions.red.hp>0?[champions.red]:[]),
    ...ai.units.filter(u=>u.team==='red'&&u.hp>0)
-  ],time)){
+  ],time,withGantries?{cover,gantries}:{})){
    if(attack.kind!=='turret'){
     hit(attack.targetId,attack.damage,'ranged',time);
     continue;
    }
    const defense=tactics.defenses.find(d=>d.id===attack.defenseId&&d.hp>0);
    const target=liveTarget(attack.targetId);
-   const projectile=planTurretShot({defense,target,damage:attack.damage,cover});
+   const projectile=planTurretShot({defense,target,damage:attack.damage,cover,gantries});
    if(!projectile)continue;
    shots.push({createdAt:time,x:projectile.origin.x,y:projectile.origin.y,
     velocity:projectile.velocity,team:projectile.team,
@@ -274,4 +285,22 @@ test('real seeded deployment variations produce distinct, reproducible 10v10 mat
  const again=simulate({seed:44,formationVariance:25,maxMs:180000});
  assert.deepEqual(first.opening,again.opening);
  assert.deepEqual(first.metrics,again.metrics,'seeded match should replay deterministically');
+});
+
+test('full Iron Citadel 10v10 model includes real gantry traversal and collision',()=>{
+ const configs=[
+  {seed:5,formationVariance:10,withGantries:true,maxMs:180000},
+  {seed:71,formationVariance:20,withGantries:true,maxMs:180000}
+ ];
+ for(const cfg of configs){
+  const result=simulate(cfg);
+  assert.equal(result.match.phase,'finished',
+   'Iron Citadel 10v10 stalled for seed '+cfg.seed+': '+JSON.stringify(result.metrics));
+  assert.ok(['blue','red'].includes(result.match.winner));
+  assert.equal(result.metrics.duplicateKOs,0);
+  for(const team of ['blue','red'])
+   assert.equal(result.match.eliminations[team]+result.match.remaining[team],10);
+  assert.ok(result.metrics.frames<=1800);
+  assert.ok(result.metrics.shots>0,'gantry test must exercise real travelling projectiles');
+ }
 });

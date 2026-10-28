@@ -100,3 +100,43 @@ test('destroyed barricade opens a ground turret firing lane',()=>{
  assert.equal(attack.targetId,'hero');
  assert.equal(attack.targetTeam,'blue');
 });
+
+test('blue turret ignores tagged friendly champions and escorts in mixed rosters',()=>{
+ const battle=new TacticalBattle();
+ battle.deploy('blue','turret',300);
+ const friends=[
+  {id:'hero',team:'blue',x:300,y:590,hp:100},
+  {id:2,team:'blue',x:310,y:590,hp:45}
+ ];
+ const foe={id:'enemy',team:'red',x:415,y:590,hp:100};
+ const attacks=battle.getTargets('blue',[...friends,foe],1000);
+ assert.equal(attacks.length,1);
+ assert.equal(attacks[0].targetId,'enemy');
+ assert.equal(attacks[0].targetTeam,'red');
+});
+test('friendly only mixed roster does not spend turret shot cooldown',()=>{
+ const battle=new TacticalBattle();
+ battle.deploy('red','turret',900);
+ const friendly={id:6,team:'red',x:905,y:590,hp:80};
+ assert.deepEqual(battle.getTargets('red',[friendly],1000),[]);
+ assert.equal(battle.defenses[0].lastFired,-Infinity);
+ const foe={id:7,team:'blue',x:950,y:590,hp:60};
+ const shot=battle.getTargets('red',[friendly,foe],1001);
+ assert.equal(shot.length,1);
+ assert.equal(shot[0].targetId,7);
+});
+test('ground trap is not consumed by friendly fighter in mixed roster',()=>{
+ const battle=new TacticalBattle();
+ battle.deploy('blue','trap',300);
+ assert.deepEqual(battle.getTargets('blue',[
+  {id:'hero',team:'blue',x:301,y:590,hp:100}
+ ],1000),[]);
+ assert.equal(battle.defenses[0].hp,35);
+ const hits=battle.getTargets('blue',[
+  {id:'hero',team:'blue',x:301,y:590,hp:100},
+  {id:'enemy',team:'red',x:320,y:590,hp:100}
+ ],1100);
+ assert.equal(hits.length,1);
+ assert.equal(hits[0].targetId,'enemy');
+ assert.equal(battle.defenses[0].hp,0);
+});

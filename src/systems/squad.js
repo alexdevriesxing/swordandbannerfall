@@ -1,3 +1,4 @@
+import {combatElevation} from './elevation.js';
 // Tactical squad decisions: shared focus fire without individual player control.
 export class SquadCoordinator {
  constructor({rethinkMs=1200}={}){this.rethinkMs=rethinkMs;this.targets={blue:null,red:null};this.decidedAt={blue:-Infinity,red:-Infinity};this.lastOrder={blue:null,red:null};}
@@ -20,7 +21,14 @@ export class SquadCoordinator {
     const risk=Math.abs(f.x-championX);
     const protection=order==='guard'&&risk<250?500:0;
     const weakened=Number.isFinite(f.hp)?Math.max(0,100-f.hp)*.5:0;
-    return Math.abs(f.x-center)-protection-weakened;
+    // A full squad should not repeatedly focus on a nearer platform foe
+    // that most of its current frontline cannot physically attack. Rangers
+    // retain their larger vertical firing envelope, so coordinated squads
+    // can still engage worthwhile elevated threats.
+    const blockedFighters=squad.filter(u=>
+      !combatElevation(u,f)[u.role==='ranger'?'ranged':'melee']).length;
+    const elevationPenalty=blockedFighters*60;
+    return Math.abs(f.x-center)+elevationPenalty-protection-weakened;
   };
   const target=[...livingFoes].sort((a,b)=>scoring(a)-scoring(b)||String(a.id).localeCompare(String(b.id)))[0];
   this.targets[team]=target.id;this.decidedAt[team]=time;return target;

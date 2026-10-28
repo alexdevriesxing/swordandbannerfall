@@ -33,3 +33,33 @@ test('screen uses living friendly melee escorts and mirrors for red team',()=>{
  assert.equal(screenedRangerGoal(red,{x:200},[red],500),500);
  assert.equal(screenedRangerGoal({...red,role:'vanguard'},{x:200},allies,500),500);
 });
+
+test('formation spacing never treats another gantry as the same lane',()=>{
+ const unit={id:2,team:'blue',x:350,y:590,hp:45};
+ const upstairs={id:1,team:'blue',x:350,y:445,hp:80};
+ assert.equal(formationGoal(unit,350,[unit,upstairs]),350);
+ assert.equal(formationGoal({...unit,y:445},350,[{...unit,y:445},upstairs]),
+  356.6,'same-height allies still spread deterministically');
+});
+test('ground ranger is not screened by a melee warrior on the upper gantry',()=>{
+ const ranger={id:1,team:'blue',role:'ranger',x:200,y:590,hp:45};
+ const upperVanguard={id:2,team:'blue',role:'vanguard',x:350,y:445,hp:80};
+ assert.equal(screenedRangerGoal(ranger,{x:900},[ranger,upperVanguard],650),650);
+ const groundVanguard={...upperVanguard,id:3,y:590,x:340};
+ assert.equal(screenedRangerGoal(ranger,{x:900},[ranger,upperVanguard,groundVanguard],650),280);
+});
+test('red rangers screen only same-height escorts and accept nearby elevation',()=>{
+ const ranger={id:10,team:'red',role:'ranger',x:1020,y:445,hp:45};
+ const groundSentinel={id:11,team:'red',role:'sentinel',x:820,y:590,hp:90};
+ const nearHeight={id:12,team:'red',role:'vanguard',x:850,y:495,hp:80};
+ assert.equal(screenedRangerGoal(ranger,{x:200},[ranger,groundSentinel],500),500);
+ assert.equal(screenedRangerGoal(ranger,{x:200},[ranger,groundSentinel,nearHeight],500),910);
+});
+test('bad formation elevation settings fail without changing the input roster',()=>{
+ const unit={id:1,team:'blue',x:300,y:590,hp:80};
+ const allies=[unit,{id:2,team:'blue',x:300,y:590,hp:80}];
+ const original=JSON.stringify(allies);
+ assert.throws(()=>formationGoal(unit,300,allies,{maxElevation:-1}),RangeError);
+ assert.throws(()=>screenedRangerGoal({...unit,role:'ranger'}, {x:500},allies,400,{maxElevation:NaN}),RangeError);
+ assert.equal(JSON.stringify(allies),original);
+});

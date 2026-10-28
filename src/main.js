@@ -274,7 +274,8 @@ class Arena extends Phaser.Scene {
     return nearestOpponent(source.x,source.getData('team'),{
       blue:{x:this.player.x,y:this.player.y,hp:this.director.fighters.hero.hp},
       red:{x:this.enemy.x,y:this.enemy.y,hp:this.director.fighters.enemy.hp}
-    },this.companions.units,{range,cover:ignoreCover?null:this.cover,fromY:source.y,attackMode});
+    },this.companions.units,{range,cover:ignoreCover?null:this.cover,
+      gantries:IRON_CITADEL_GANTRIES,fromY:source.y,attackMode});
   }
   hitCompanion(target,damage,time=this.time.now,attackType='melee'){
     if(this.match.phase!=='fight'||!target||!(target.hp>0))return;
@@ -750,7 +751,8 @@ class Arena extends Phaser.Scene {
           {id:'hero',team:'blue',x:p.x,y:p.y,hp:this.director.fighters.hero.hp},
           {id:'enemy',team:'red',x:e.x,y:e.y,hp:this.director.fighters.enemy.hp},
           ...this.companions.units.filter(u=>u.hp>0)
-        ],{range:attacker.range,cover:this.cover}):[];
+        ],{range:attacker.range,cover:this.cover,
+          gantries:IRON_CITADEL_GANTRIES}):[];
       if(attack.target==='hero'||attack.target==='enemy'){
         const target=attack.target==='hero'?p:e;
         if(target.active)this.hit(target,attack.damage,'melee');

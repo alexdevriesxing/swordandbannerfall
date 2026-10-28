@@ -333,7 +333,8 @@ class Arena extends Phaser.Scene {
     this.time.delayedCall(1900,()=>bullet.active&&bullet.destroy());
   }
   fireTurret(defense,target,damage){
-    const shot=planTurretShot({defense,target,damage,cover:this.cover});
+    const shot=planTurretShot({defense,target,damage,cover:this.cover,
+      gantries:IRON_CITADEL_GANTRIES});
     if(!shot)return false;
     const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
     bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
@@ -349,7 +350,8 @@ class Arena extends Phaser.Scene {
     return true;
   }
   fireCompanion(attacker,target,damage){
-    const shot=planCompanionShot({attacker,target,damage,cover:this.cover});
+    const shot=planCompanionShot({attacker,target,damage,cover:this.cover,
+      gantries:IRON_CITADEL_GANTRIES});
     if(!shot)return false;
     const bullet=this.bullets.create(shot.origin.x,shot.origin.y,'missile').setScale(.6);
     bullet.setData('previousX',shot.origin.x).setData('previousY',shot.origin.y);
@@ -701,7 +703,9 @@ class Arena extends Phaser.Scene {
     // Resolve both sides symmetrically. Champions and AI escorts receive the
     // same shield, Sentinel interception, KO and comeback-card logic.
     for(const [team,targets] of [['blue',hostileTargets],['red',friendlyTargets]]){
-      for(const attack of this.tactics.getTargets(team,targets,time,{cover:this.cover})){
+      for(const attack of this.tactics.getTargets(team,targets,time,{
+        cover:this.cover,gantries:IRON_CITADEL_GANTRIES
+      })){
         if(attack.kind==='turret'){
           const defense=this.tactics.defenses.find(d=>d.id===attack.defenseId&&d.hp>0);
           const target=targets.find(t=>t.id===attack.targetId&&t.hp>0);

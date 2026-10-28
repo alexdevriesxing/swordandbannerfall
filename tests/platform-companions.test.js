@@ -67,7 +67,7 @@ test('ground Vanguard fights reachable target even when squad focuses upper gant
  const frontline=ai.add('blue',200,{role:'vanguard'});
  for(let i=0;i<3;i++)ai.add('blue',180+i*5,{role:'ranger'});
  const elevated=ai.add('red',210,{role:'vanguard'});
- const ground=ai.add('red',260,{role:'vanguard'});
+ const ground=ai.add('red',285,{role:'vanguard'});
  ai.units.find(u=>u.id===elevated.id).y=445;
  ai.command('blue','hunt');
  const captains={
@@ -87,7 +87,7 @@ test('red frontline uses the same reachable-opponent override',()=>{
  const frontline=ai.add('red',1000,{role:'vanguard'});
  for(let i=0;i<3;i++)ai.add('red',1020-i*5,{role:'ranger'});
  const elevated=ai.add('blue',990,{role:'vanguard'});
- const ground=ai.add('blue',940,{role:'vanguard'});
+ const ground=ai.add('blue',915,{role:'vanguard'});
  ai.units.find(u=>u.id===elevated.id).y=445;
  ai.command('red','hunt');
  const captains={

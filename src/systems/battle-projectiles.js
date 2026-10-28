@@ -1,10 +1,11 @@
 import { sweptProjectileContact } from './projectile-impact.js';
+import { sweptGantryContact } from './gantry-projectiles.js';
 
 // Resolve the first physical contact along one projectile frame, regardless
 // of its originally selected target. This avoids bullets phasing through one
 // enemy to hit a more distant enemy in crowded 10v10 battles.
 export function firstBattleProjectileContact(previous,current,{
-  firingTeam,champions=null,companions=[],cover=null
+  firingTeam,champions=null,companions=[],cover=null,gantries=[]
 }={}) {
  if(!['blue','red'].includes(firingTeam) ||
     ![previous?.x,previous?.y,current?.x,current?.y].every(Number.isFinite))
@@ -28,6 +29,12 @@ export function firstBattleProjectileContact(previous,current,{
  // Cover wins exact-time ties. A travelling bullet must not penetrate a wall
  // simply because an opponent and the barricade are hit within one tick.
  let first=sweptProjectileContact(previous,current,null,cover);
+ const gantry=sweptGantryContact(previous,current,gantries);
+ // Terrain and cover stop projectiles before any later fighter, with a
+ // deterministic tie-break on the collision time.
+ if(gantry&&(!first||gantry.time<first.time||
+    (gantry.time===first.time&&first.kind==='unit')))
+  first=gantry;
  for(const enemy of enemies) {
   const hit=sweptProjectileContact(previous,current,enemy,null);
   if(!hit||hit.kind!=='unit')continue;

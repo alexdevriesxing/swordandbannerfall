@@ -47,13 +47,48 @@ test('muzzle does not spawn behind solid cover close to the shooter',()=>{
  assert.equal(sweptProjectileContact(planned.origin,{x:490,y:573},enemy,cover).kind,'cover');
 });
 
-test('no damage is planned for missing targets, distant walls or allied fighters',()=>{
+test('free fire launches a real bolt without inventing target damage',()=>{
  const empty=new BattlefieldCover([]);
  const remote=new BattlefieldCover([{id:'far',x:1140,width:80,hp:100}]);
- assert.equal(planChampionShot({attacker,lookToward:enemy,cover:empty}),null);
- assert.equal(planChampionShot({attacker,lookToward:enemy,cover:remote}),null);
+ for(const cover of [empty,remote]){
+  const shot=planChampionShot({attacker,lookToward:{x:1200,y:590},cover});
+  assert.ok(shot,'player shoot input should not silently fail with no acquired enemy');
+  assert.equal(shot.targetId,null,'free fire does not fabricate a hit target');
+  assert.equal(shot.damage,12);
+  assert.ok(shot.velocity.x>0&&shot.velocity.y===0);
+  assert.equal(shot.origin.y,573);
+  assert.equal(sweptProjectileContact(shot.origin,{x:950,y:573},null,cover),null);
+ }
+ assert.equal(remote.segments[0].hp,100,'launch must never damage distant walls');
+});
+
+test('free fire is symmetric for blue and red champions and empty sight is safe',()=>{
+ const empty=new BattlefieldCover([]);
+ const cases=[
+  [{team:'blue',x:430,y:590},{x:1000,y:590},1],
+  [{team:'red',x:900,y:590},{x:300,y:590},-1]
+ ];
+ for(const [shooter,sight,dir] of cases){
+  const shot=planChampionShot({attacker:shooter,lookToward:sight,cover:empty});
+  assert.ok(shot);
+  assert.ok(shot.velocity.x*dir>0);
+  assert.equal(shot.team,shooter.team);
+  assert.equal(shot.targetId,null);
+  assert.ok(Math.abs(Math.hypot(shot.velocity.x,shot.velocity.y)-650)<1e-6);
+ }
+ assert.equal(planChampionShot({attacker,cover:empty}),null);
+ assert.equal(planChampionShot({attacker,lookToward:{x:NaN},cover:empty}),null);
  assert.equal(planChampionShot({attacker,target:{...enemy,team:'blue'},cover:empty}),null);
  assert.equal(planChampionShot({attacker,target:{...enemy,hp:0},cover:empty}),null);
+});
+
+test('free-fire arrow can later hit a moving enemy through actual swept collision',()=>{
+ const cover=new BattlefieldCover([]);
+ const shot=planChampionShot({attacker,lookToward:{x:1100,y:590},cover});
+ const crossed=sweptProjectileContact(shot.origin,
+  {x:800,y:573},{id:13,team:'red',x:650,y:590,hp:40},cover);
+ assert.equal(crossed?.kind,'unit');
+ assert.equal(crossed?.id,13);
 });
 
 test('elevated shots clear a ground barricade without registering a false hit',()=>{

@@ -69,3 +69,43 @@ test('melee windups also reject solid stone platforms when geometry is provided'
  assert.equal(validImpact(params),false);
  assert.equal(validImpact({...params,gantries:[]}),true);
 });
+
+test('blue ranger selects reachable ground combat over closer stone-shielded foe',()=>{
+ const ai=new CompanionDirector({maxPerTeam:3});
+ const ranger=ai.add('blue',200,{role:'ranger'});
+ const high=ai.add('red',350,{role:'sentinel'});
+ const ground=ai.add('red',420,{role:'vanguard'});
+ ai.units.find(u=>u.id===high.id).y=445;
+ ai.command('blue','hunt');
+ const attacks=ai.update(1000,0,fallen(),null,null,null,IRON_CITADEL_GANTRIES);
+ assert.equal(ai.coordinator.targets.blue,high.id,
+  'team may retain a longer-term focus on the elevated fighter');
+ assert.ok(attacks.some(a=>a.type==='attack'&&a.id===ranger.id&&a.targetId===ground.id),
+  'ranger should exploit the clear ground firing lane');
+ assert.equal(ai.units.find(u=>u.id===ranger.id).lastAttack,1000);
+});
+
+test('red ranger retargets symmetrically to the clear ground-level shot',()=>{
+ const ai=new CompanionDirector({maxPerTeam:3});
+ const ranger=ai.add('red',1080,{role:'ranger'});
+ const high=ai.add('blue',930,{role:'sentinel'});
+ const ground=ai.add('blue',860,{role:'vanguard'});
+ ai.units.find(u=>u.id===high.id).y=445;
+ ai.command('red','hunt');
+ const attacks=ai.update(1000,0,fallen(),null,null,null,IRON_CITADEL_GANTRIES);
+ assert.equal(ai.coordinator.targets.red,high.id);
+ assert.ok(attacks.some(a=>a.type==='attack'&&a.id===ranger.id&&a.targetId===ground.id));
+});
+
+test('lone elevated opponent is still pursued rather than disappearing from AI awareness',()=>{
+ const ai=new CompanionDirector();
+ const ranger=ai.add('blue',200,{role:'ranger'});
+ const high=ai.add('red',350,{role:'vanguard',platformNode:'west-gantry'});
+ ai.command('blue','hunt');
+ const platforms=new PlatformRoutes(IRON_CITADEL_NODES,IRON_CITADEL_LINKS);
+ ai.units.find(u=>u.id===ranger.id).platformNode='west-foot';
+ const actions=ai.update(1000,16,fallen(),null,platforms,null,IRON_CITADEL_GANTRIES);
+ assert.ok(actions.some(a=>a.type==='move'&&a.id===ranger.id),
+  'blocked targets must still trigger authored traversal');
+ assert.equal(ai.coordinator.targets.blue,high.id);
+});

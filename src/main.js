@@ -737,8 +737,13 @@ class Arena extends Phaser.Scene {
         blue:{team:'blue',hp:this.director.fighters.hero.hp,x:p.x,y:p.y,platformNode:this.platforms.nearest(p.x,p.y,{maxDistance:180})?.id??null},
         red:{team:'red',hp:this.director.fighters.enemy.hp,x:e.x,y:e.y,platformNode:this.platforms.nearest(e.x,e.y,{maxDistance:180})?.id??null}
       });
-      if(!validImpact({attacker,target:resolved,range:attacker.range,cover:this.cover,
-        gantries:IRON_CITADEL_GANTRIES}))continue;
+      // The windup must use the SAME effective range at which the escort
+      // was allowed to start the ability. Vanguard's role 85px is narrower
+      // than the shared 90px attack baseline; otherwise a valid Cleave
+      // silently fizzles at the edge even when neither fighter moved.
+      const meleeRange=Math.max(this.companions.attackRange,attacker.range);
+      if(!validImpact({attacker,target:resolved,range:meleeRange,
+        cover:this.cover,gantries:IRON_CITADEL_GANTRIES}))continue;
       if(attacker.role==='ranger'){
         this.fireCompanion(attacker,{...resolved,id:attack.target},attack.damage);
         continue;
@@ -751,7 +756,7 @@ class Arena extends Phaser.Scene {
           {id:'hero',team:'blue',x:p.x,y:p.y,hp:this.director.fighters.hero.hp},
           {id:'enemy',team:'red',x:e.x,y:e.y,hp:this.director.fighters.enemy.hp},
           ...this.companions.units.filter(u=>u.hp>0)
-        ],{range:attacker.range,cover:this.cover,
+        ],{range:meleeRange,cover:this.cover,
           gantries:IRON_CITADEL_GANTRIES}):[];
       if(attack.target==='hero'||attack.target==='enemy'){
         const target=attack.target==='hero'?p:e;

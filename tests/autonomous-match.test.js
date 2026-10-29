@@ -216,9 +216,16 @@ function simulate({
    if(time-clocks[champion.id]<750)continue;
    clocks[champion.id]=time;
    if(coverHit){if(Math.abs(coverHit.x-champion.x)<600)breach(coverHit.id,18);continue;}
-   if(distance<110)hit(selected.id,21,'melee',time);
+   // Reacquire at the champion's CURRENT position after walking and apply
+   // the same painted gantry/collider and elevation rules as Arena.strike().
+   // The previous model could kill raised escorts through the stone slab,
+   // leading to unrealistically easy "green" multi-level simulations.
+   const melee=nearestOpponent(champion.x,team,champions,ai.units,{
+    range:110,cover,gantries,fromY:champion.y,attackMode:'melee'
+   });
+   if(melee)hit(melee.id,21,'melee',time);
    else if(distance<575){
-    // Champion fire in this headless harness uses the same delayed flight semantics.
+    // Champion fire in this headless harness uses delayed physical flight.
     fire({...champion,role:'ranger'},selected,12,time);
    }
   }

@@ -146,7 +146,8 @@ function simulate({
   for(const pending of windups.popReady(time)){
    if(match.phase!=='fight')break;
    const attacker=liveTarget(pending.attacker),target=liveTarget(pending.target);
-   if(!validImpact({attacker,target,range:attacker?.range,cover,gantries}))continue;
+   const range=Math.max(ai.attackRange,attacker?.range??0);
+   if(!validImpact({attacker,target,range,cover,gantries}))continue;
    if(attacker.role==='ranger'){
     fire(attacker,target,pending.damage,time);
    }else{
@@ -154,7 +155,7 @@ function simulate({
      attacker,{...target,id:pending.target},[
       ...Object.values(champions).filter(u=>u.hp>0),
       ...ai.units.filter(u=>u.hp>0)
-     ],{range:attacker.range,cover,gantries}):[];
+     ],{range,cover,gantries}):[];
     hit(pending.target,pending.damage,'melee',time);
     if(match.phase==='fight')
      for(const foe of splash){

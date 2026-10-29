@@ -794,17 +794,25 @@ class Arena extends Phaser.Scene {
           if(target)this.fireCompanion(attacker,target,action.damage);
           continue;
         }
-        if(action.targetId==='champion'){
-          const target=action.team==='blue'?e:p;
-          if(!target.active)continue;
-          this.hit(target,action.damage,'melee');
-          if(this.match.phase==='finished')return;
-        }else if(attacker){
-          const victim=this.companions.units.find(u=>u.id===action.targetId);
-          if(!victim||victim.hp<=0)continue;
-          this.hitCompanion(victim,action.damage,time);
-          if(this.match.phase==='finished')return;
-        }
+        // Companions decide attacks against a snapshot, then the whole 10v10
+        // movement frame finishes before hits resolve. Revalidate live reach,
+        // height and stone/cover obstruction so an outdated strike cannot
+        // damage someone who has already stepped or jumped out of the arc.
+        const target=action.targetId==='champion'?(action.team==='blue'?e:p):null;
+        const victim=target?null:this.companions.units.find(u=>u.id===action.targetId);
+        const defender=target?{
+          id:target.getData('id'),team:target.getData('team'),
+          hp:this.director.fighters[target.getData('id')]?.hp??0,
+          x:target.x,y:target.y
+        }:victim;
+        if((target&&!target.active)||!validImpact({
+          attacker,target:defender,
+          range:Math.max(this.companions.attackRange,attacker.range),
+          cover:this.cover,gantries:IRON_CITADEL_GANTRIES
+        }))continue;
+        if(target)this.hit(target,action.damage,'melee');
+        else this.hitCompanion(victim,action.damage,time);
+        if(this.match.phase==='finished')return;
       }
     }
     const keyboardAxis=(this.keys.D.isDown?1:0)-(this.keys.A.isDown?1:0);

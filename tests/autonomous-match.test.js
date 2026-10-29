@@ -138,7 +138,10 @@ function simulate({
    metrics.attacks++;
    if(action.ability){windups.schedule(time,action.id,targetId,action.damage);continue;}
    if(attacker.role==='ranger')fire(attacker,target,action.damage,time);
-   else hit(targetId,action.damage,'melee',time);
+   else if(validImpact({
+    attacker,target,range:Math.max(ai.attackRange,attacker.range),
+    cover,gantries
+   }))hit(targetId,action.damage,'melee',time);
   }
   for(const pending of windups.popReady(time)){
    if(match.phase!=='fight')break;
@@ -151,7 +154,7 @@ function simulate({
      attacker,{...target,id:pending.target},[
       ...Object.values(champions).filter(u=>u.hp>0),
       ...ai.units.filter(u=>u.hp>0)
-     ],{range:attacker.range,cover}):[];
+     ],{range:attacker.range,cover,gantries}):[];
     hit(pending.target,pending.damage,'melee',time);
     if(match.phase==='fight')
      for(const foe of splash){
